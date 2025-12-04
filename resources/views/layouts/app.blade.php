@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+<!-- Favicon (multiple versions for different devices) -->
+<link rel="icon" href="{{ asset('pbg_logo.png') }}" type="image/png" sizes="32x32">
+<link rel="icon" href="{{ asset('pbg_logo.png') }}" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="{{ asset('pbg_logo.png') }}">
+<link rel="shortcut icon" href="{{ asset('pbg_logo.png') }}" type="image/x-icon">
+    <title>{{ config('app.name', 'Priority Bank') }} - @yield('title')</title>
+ <!-- Web App Manifest -->
+  <link rel="manifest" href="{{ asset('manifest.json') }}">
+  
+  <!-- Theme Color (matches manifest) -->
+  <meta name="theme-color" content="#4f46e5">
+  
+  <!-- iOS Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="{{ asset('pbg_logo_192.png') }}">
+<meta name="mobile-web-app-capable" content="yes">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Additional CSS -->
+    @stack('styles')
+</head>
+<body class="font-sans antialiased bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-64 bg-indigo-700 text-white">
+                <div class="flex items-center justify-center h-16 px-4 bg-indigo-800">
+                    <span class="text-xl font-bold">{{ config('app.name', 'PriorityBank') }}</span>
+                </div>
+                <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
+                    <nav class="flex-1 space-y-2">
+                        <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            Dashboard
+                        </a>
+                        <a href="{{ route('transactions.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-exchange-alt mr-3"></i>
+                            Transactions
+                        </a>
+                        <a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:bg-indigo-600">
+                            <i class="fas fa-chart-line mr-3"></i>
+                            Reports
+                        </a>
+                        <a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:bg-indigo-600">
+                            <i class="fas fa-wallet mr-3"></i>
+                            Accounts
+                        </a>
+                        <a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:bg-indigo-600">
+                            <i class="fas fa-cog mr-3"></i>
+                            Settings
+                        </a>
+                    </nav>
+                </div>
+                <div class="p-4 border-t border-indigo-600">
+                    <div class="flex items-center">
+                        @if(auth()->user()->profile_photo_path)
+                            <img class="w-8 h-8 rounded-full object-cover" 
+                                 src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" 
+                                 alt="User avatar">
+                        @else
+                            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs">
+                                {{ substr(auth()->user()->name, 0, 1) }}
+                            </div>
+                        @endif
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">{{ auth()->user()->name }}</p>
+                            <a href="{{ route('profile.edit') }}" class="text-xs text-indigo-200 hover:text-white">View Profile</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col flex-1 overflow-hidden">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between px-6 py-3">
+                    <!-- Mobile menu button -->
+                    <div class="md:hidden">
+                        <button @click="open = !open" class="text-gray-500 hover:text-gray-600 focus:outline-none">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Search bar -->
+                    <div class="flex-1 max-w-md mx-4">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                            <input class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Search...">
+                        </div>
+                    </div>
+                    
+                    <!-- Right side icons -->
+                    <div class="flex items-center space-x-4">
+                        <button class="text-gray-500 hover:text-gray-600 focus:outline-none">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <button class="text-gray-500 hover:text-gray-600 focus:outline-none">
+                            <i class="fas fa-envelope"></i>
+                        </button>
+                        
+                        <!-- User dropdown -->
+                        <div class="relative ml-3">
+                            <div class="flex items-center space-x-2 cursor-pointer" id="user-menu-button">
+                                <span class="text-sm font-medium">{{ auth()->user()->name }}</span>
+                                @if(auth()->user()->profile_photo_path)
+                                    <img class="w-8 h-8 rounded-full object-cover" 
+                                         src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" 
+                                         alt="User avatar">
+                                @else
+                                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs">
+                                        {{ substr(auth()->user()->name, 0, 1) }}
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <!-- Dropdown menu -->
+                            <div class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
+                                <div class="py-1">
+                                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Your Profile</a>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Mobile sidebar (hidden by default) -->
+            <div class="md:hidden" x-show="open" @click.away="open = false" style="display: none;">
+                <div class="pt-2 pb-3 space-y-1 bg-indigo-700 text-white">
+                    <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-tachometer-alt mr-3"></i>
+                        Dashboard
+                    </a>
+                    <a href="{{ route('transactions.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-exchange-alt mr-3"></i>
+                        Transactions
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto p-6 bg-gray-50">
+                @if (isset($header))
+                    <div class="mb-6">
+                        <h1 class="text-2xl font-bold text-gray-800">{{ $header }}</h1>
+                    </div>
+                @endif
+
+                @yield('content')
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    @stack('scripts')
+    <script>
+        // Simple Alpine.js for mobile menu toggle
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('app', () => ({
+                open: false,
+                toggle() {
+                    this.open = !this.open
+                }
+            }))
+        })
+
+        // User dropdown toggle
+        document.getElementById('user-menu-button').addEventListener('click', function() {
+            const menu = this.nextElementSibling;
+            menu.classList.toggle('hidden');
+        });
+    </script>
+
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful');
+                })
+                .catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
+</script>
+</body>
+</html>
