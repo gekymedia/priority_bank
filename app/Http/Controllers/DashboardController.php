@@ -6,6 +6,10 @@ use App\Models\Income;
 use App\Models\Expense;
 use App\Models\Loan;
 use App\Models\Payout;
+use App\Models\Saving;
+use App\Models\LoanRequest;
+use App\Models\Payment;
+use App\Models\GroupFund;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -20,6 +24,16 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        if ($user->isAdmin()) {
+            return $this->adminDashboard($user);
+        } else {
+            return $this->userDashboard($user);
+        }
+    }
+
+    protected function adminDashboard($user)
+    {
         $thirtyDaysAgo = Carbon::now()->subDays(30);
 
         // Financial Summary
@@ -32,14 +46,19 @@ class DashboardController extends Controller
             ->sum('amount');
 
         $activeLoans = Loan::where('user_id', $user->id)
-            ->where('status', 'given')
+            ->where('status', 'borrowed')
             ->sum('amount');
 
         $loansCount = Loan::where('user_id', $user->id)
-            ->where('status', 'given')
+            ->where('status', 'borrowed')
             ->count();
 
         $netBalance = $totalIncome - $totalExpenses - $activeLoans;
+
+        // Credit Union Summary
+        $groupFund = GroupFund::getInstance();
+        $pendingLoanRequests = LoanRequest::pending()->count();
+        $totalCreditUnionLoans = Loan::creditUnionLoans()->active()->sum('amount');
 
         // Charts & Recent
         $incomeExpenseChart = $this->generateIncomeExpenseChart($user, $thirtyDaysAgo);
@@ -62,7 +81,39 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'totalIncome', 'totalExpenses', 'activeLoans', 'loansCount',
             'netBalance', 'incomeExpenseChart', 'expenseCategoryChart',
-            'recentTransactions', 'aiInsights'
+            'recentTransactions', 'aiInsights', 'groupFund', 'pendingLoanRequests',
+            'totalCreditUnionLoans'
+        ));
+    }
+
+    protected function userDashboard($user)
+    {
+        // Credit Union Balance Summary
+        $savingsBalance = $user->savings_balance;
+        $loanBalance = $user->loan_balance;
+        $netBalance = $user->net_balance;
+
+        // Recent Activity
+        $recentSavings = Saving::where('user_id', $user->id)
+            ->latest()->take(5)->get();
+
+        $recentLoans = Loan::where('user_id', $user->id)
+            ->where('is_credit_union_loan', true)
+            ->latest()->take(5)->get();
+
+        $recentPayments = Payment::where('user_id', $user->id)
+            ->latest()->take(5)->get();
+
+        $activeLoanRequests = LoanRequest::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->get();
+
+        // Group Fund Info
+        $groupFund = GroupFund::getInstance();
+
+        return view('dashboard', compact(
+            'savingsBalance', 'loanBalance', 'netBalance', 'recentSavings',
+            'recentLoans', 'recentPayments', 'activeLoanRequests', 'groupFund'
         ));
     }
 
@@ -99,36 +150,41 @@ class DashboardController extends Controller
     {
         $expenses = Expense::where('user_id', $user->id)
             ->where('date', '>=', $startDate)
-            ->selectRaw('category, SUM(amount) as total')
-            ->groupBy('category')->orderByDesc('total')->get();
+            ->selectRaw('expense_category_id, SUM(amount) as total')
+            ->groupBy('expense_category_id')
+            ->with('category')
+            ->orderByDesc('total')
+            ->get();
 
         return [
-            'labels' => $expenses->pluck('category'),
+            'labels' => $expenses->map(fn($e) => optional($e->category)->name ?? 'Uncategorised'),
             'data' => $expenses->pluck('total'),
         ];
     }
 
     protected function getRecentTransactions($user)
     {
-        $incomes = Income::where('user_id', $user->id)->latest()->take(5)->get()->map(function ($item) {
-            return [
-                'type' => 'income',
-                'amount' => $item->amount,
-                'description' => $item->source,
-                'category' => 'Income',
-                'date' => $item->date
-            ];
-        });
+        $incomes = Income::where('user_id', $user->id)
+            ->latest()->take(5)->get()->map(function ($item) {
+                return [
+                    'type' => 'income',
+                    'amount' => $item->amount,
+                    'description' => $item->notes ?? optional($item->category)->name ?? 'Income',
+                    'category' => optional($item->category)->name ?? 'Income',
+                    'date' => $item->date
+                ];
+            });
 
-        $expenses = Expense::where('user_id', $user->id)->latest()->take(5)->get()->map(function ($item) {
-            return [
-                'type' => 'expense',
-                'amount' => $item->amount,
-                'description' => $item->category,
-                'category' => 'Expense',
-                'date' => $item->date
-            ];
-        });
+        $expenses = Expense::where('user_id', $user->id)
+            ->latest()->take(5)->get()->map(function ($item) {
+                return [
+                    'type' => 'expense',
+                    'amount' => $item->amount,
+                    'description' => $item->notes ?? optional($item->category)->name ?? 'Expense',
+                    'category' => optional($item->category)->name ?? 'Expense',
+                    'date' => $item->date
+                ];
+            });
 
         return $incomes->merge($expenses)
             ->sortByDesc('date')->take(5)->values()->all();

@@ -24,37 +24,38 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-   
+    public function update(ProfileUpdateRequest $request)
+    {
+        $user = $request->user();
+        $data = $request->validated();
 
-// app/Http/Controllers/ProfileController.php
+        // Handle file upload
+        if ($request->hasFile('photo')) {
+            // Delete old file if exists
+            if ($user->profile_photo_path) {
+                Storage::delete('public/'.$user->profile_photo_path);
+            }
 
-public function update(ProfileUpdateRequest $request)
-{
-    $user = $request->user();
-    $data = $request->validated();
-
-    // Handle file upload
-    if ($request->hasFile('photo')) {
-        // Delete old file if exists
-        if ($user->profile_photo_path) {
-            Storage::delete('public/'.$user->profile_photo_path);
+            // Store new file
+            $path = $request->file('photo')->store('profile-photos', 'public');
+            $data['profile_photo_path'] = $path;
         }
 
-        // Store new file
-        $path = $request->file('photo')->store('profile-photos', 'public');
-        $data['profile_photo_path'] = $path;
+        // Assign defaults for notification toggles if missing
+        $data['notification_email'] = $data['notification_email'] ?? false;
+        $data['notification_browser'] = $data['notification_browser'] ?? false;
+        $data['theme'] = $data['theme'] ?? $user->theme;
+
+        $user->fill($data);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        return redirect()->route('profile.edit')->with('status', 'profile-updated');
     }
-
-    $user->fill($data);
-
-    if ($user->isDirty('email')) {
-        $user->email_verified_at = null;
-    }
-
-    $user->save();
-
-    return redirect()->route('profile.edit')->with('status', 'profile-updated');
-}
     /**
      * Delete the user's account.
      */

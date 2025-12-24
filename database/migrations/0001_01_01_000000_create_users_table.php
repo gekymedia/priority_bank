@@ -17,6 +17,16 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // Additional profile fields
+            $table->string('phone')->nullable();
+            $table->string('preferred_currency', 10)->default('GHS');
+            $table->boolean('notification_email')->default(true);
+            $table->boolean('notification_browser')->default(true);
+            $table->string('theme')->default('light');
+            $table->string('role')->default('user');
+            $table->string('profile_photo_path')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });

@@ -9,16 +9,14 @@
             @csrf
 
             <div class="mb-4">
-                <label for="category" class="block text-gray-700 font-medium mb-2">Category</label>
-                <select name="category" id="category" class="w-full px-4 py-2 border rounded-lg @error('category') border-red-500 @enderror" required>
+                <label for="expense_category_id" class="block text-gray-700 font-medium mb-2">Category</label>
+                <select name="expense_category_id" id="expense_category_id" class="w-full px-4 py-2 border rounded-lg @error('expense_category_id') border-red-500 @enderror" required>
                     <option value="">Select Category</option>
-                    <option value="Fuel" {{ old('category') == 'Fuel' ? 'selected' : '' }}>Fuel</option>
-                    <option value="Airtime" {{ old('category') == 'Airtime' ? 'selected' : '' }}>Airtime</option>
-                    <option value="Groceries" {{ old('category') == 'Groceries' ? 'selected' : '' }}>Groceries</option>
-                    <option value="Utilities" {{ old('category') == 'Utilities' ? 'selected' : '' }}>Utilities</option>
-                    <option value="Other" {{ old('category') == 'Other' ? 'selected' : '' }}>Other</option>
+                    @foreach($categories as $id => $name)
+                        <option value="{{ $id }}" {{ old('expense_category_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
                 </select>
-                @error('category')
+                @error('expense_category_id')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
@@ -40,8 +38,37 @@
             </div>
 
             <div class="mb-4">
-                <label for="description" class="block text-gray-700 font-medium mb-2">Description (Optional)</label>
-                <textarea name="description" id="description" rows="3" class="w-full px-4 py-2 border rounded-lg">{{ old('description') }}</textarea>
+                <label for="channel" class="block text-gray-700 font-medium mb-2">Channel</label>
+                <select name="channel" id="channel" class="w-full px-4 py-2 border rounded-lg @error('channel') border-red-500 @enderror" required>
+                    <option value="">Select Channel</option>
+                    @foreach($channels as $value => $label)
+                        <option value="{{ $value }}" {{ old('channel') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('channel')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="account_id" class="block text-gray-700 font-medium mb-2">Account</label>
+                <select name="account_id" id="account_id" class="w-full px-4 py-2 border rounded-lg @error('account_id') border-red-500 @enderror" required>
+                    <option value="">Select Account</option>
+                    @foreach($accounts as $id => $name)
+                        <option value="{{ $id }}" {{ old('account_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+                @error('account_id')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="notes" class="block text-gray-700 font-medium mb-2">Notes (Optional)</label>
+                <textarea name="notes" id="notes" rows="3" class="w-full px-4 py-2 border rounded-lg">{{ old('notes') }}</textarea>
+                @error('notes')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="flex items-center justify-between">

@@ -11,10 +11,21 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
 
-            $table->string('category'); // e.g. Fuel, Airtime, Groceries
+            // Link to an expense category; nullable for uncategorised expenses.
+            $table->foreignId('expense_category_id')->nullable()->constrained()->nullOnDelete();
+
+            // Account from which this expense was paid
+            $table->foreignId('account_id')->constrained()->onDelete('cascade');
+
             $table->decimal('amount', 12, 2);
-            $table->date('date')->nullable();
-            $table->string('description')->nullable();
+            $table->date('date');
+
+            // Channel indicates how the payment was made (bank, momo, cash, other)
+            $table->string('channel');
+
+            // Notes or description of the expense
+            $table->text('notes')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
         });

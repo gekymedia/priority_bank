@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Income;
+use App\Models\IncomeCategory;
+use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +15,9 @@ class IncomeController extends Controller
      */
     public function index()
     {
-        $incomes = Income::where('user_id', Auth::id())->latest()->paginate(10);
+        $incomes = Income::where('user_id', Auth::id())
+            ->with(['category', 'account'])
+            ->latest()->paginate(10);
         return view('income.index', compact('incomes'));
     }
 
@@ -22,7 +26,14 @@ class IncomeController extends Controller
      */
     public function create()
     {
-        return view('income.create');
+        // Fetch available categories (global or user-specific) and accounts
+        $categories = IncomeCategory::whereNull('user_id')
+            ->orWhere('user_id', Auth::id())
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
+        return view('income.create', compact('categories', 'accounts', 'channels'));
     }
 
     /**
@@ -32,17 +43,21 @@ class IncomeController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:0',
-            'source' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'income_category_id' => 'required|exists:income_categories,id',
             'date' => 'required|date',
+            'channel' => 'required|in:bank,momo,cash,other',
+            'account_id' => 'required|exists:accounts,id',
+            'notes' => 'nullable|string',
         ]);
 
         Income::create([
             'user_id' => Auth::id(),
+            'income_category_id' => $request->income_category_id,
+            'account_id' => $request->account_id,
             'amount' => $request->amount,
-            'source' => $request->source,
-            'description' => $request->description,
             'date' => $request->date,
+            'channel' => $request->channel,
+            'notes' => $request->notes,
         ]);
 
         return redirect()->route('incomes.index')->with('success', 'Income recorded successfully.');
@@ -54,7 +69,13 @@ class IncomeController extends Controller
     public function edit(Income $income)
     {
         $this->authorize('update', $income);
-        return view('income.edit', compact('income'));
+        $categories = IncomeCategory::whereNull('user_id')
+            ->orWhere('user_id', Auth::id())
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
+        return view('income.edit', compact('income', 'categories', 'accounts', 'channels'));
     }
 
     /**
@@ -63,19 +84,22 @@ class IncomeController extends Controller
     public function update(Request $request, Income $income)
     {
         $this->authorize('update', $income);
-
         $request->validate([
             'amount' => 'required|numeric|min:0',
-            'source' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'income_category_id' => 'required|exists:income_categories,id',
             'date' => 'required|date',
+            'channel' => 'required|in:bank,momo,cash,other',
+            'account_id' => 'required|exists:accounts,id',
+            'notes' => 'nullable|string',
         ]);
 
         $income->update([
+            'income_category_id' => $request->income_category_id,
+            'account_id' => $request->account_id,
             'amount' => $request->amount,
-            'source' => $request->source,
-            'description' => $request->description,
             'date' => $request->date,
+            'channel' => $request->channel,
+            'notes' => $request->notes,
         ]);
 
         return redirect()->route('incomes.index')->with('success', 'Income updated successfully.');

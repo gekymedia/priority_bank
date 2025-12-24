@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
+use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +15,9 @@ class ExpenseController extends Controller
      */
     public function index()
     {
-        $expenses = Expense::where('user_id', Auth::id())->latest()->paginate(10);
+        $expenses = Expense::where('user_id', Auth::id())
+            ->with(['category', 'account'])
+            ->latest()->paginate(10);
         return view('expense.index', compact('expenses'));
     }
 
@@ -22,7 +26,13 @@ class ExpenseController extends Controller
      */
     public function create()
     {
-        return view('expense.create');
+        $categories = ExpenseCategory::whereNull('user_id')
+            ->orWhere('user_id', Auth::id())
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
+        return view('expense.create', compact('categories', 'accounts', 'channels'));
     }
 
     /**
@@ -32,17 +42,21 @@ class ExpenseController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:0',
-            'category' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'expense_category_id' => 'required|exists:expense_categories,id',
             'date' => 'required|date',
+            'channel' => 'required|in:bank,momo,cash,other',
+            'account_id' => 'required|exists:accounts,id',
+            'notes' => 'nullable|string',
         ]);
 
         Expense::create([
             'user_id' => Auth::id(),
+            'expense_category_id' => $request->expense_category_id,
+            'account_id' => $request->account_id,
             'amount' => $request->amount,
-            'category' => $request->category,
-            'description' => $request->description,
             'date' => $request->date,
+            'channel' => $request->channel,
+            'notes' => $request->notes,
         ]);
 
         return redirect()->route('expenses.index')->with('success', 'Expense recorded successfully.');
@@ -54,7 +68,13 @@ class ExpenseController extends Controller
     public function edit(Expense $expense)
     {
         $this->authorize('update', $expense);
-        return view('expense.edit', compact('expense'));
+        $categories = ExpenseCategory::whereNull('user_id')
+            ->orWhere('user_id', Auth::id())
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
+        return view('expense.edit', compact('expense', 'categories', 'accounts', 'channels'));
     }
 
     /**
@@ -63,19 +83,22 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense)
     {
         $this->authorize('update', $expense);
-
         $request->validate([
             'amount' => 'required|numeric|min:0',
-            'category' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'expense_category_id' => 'required|exists:expense_categories,id',
             'date' => 'required|date',
+            'channel' => 'required|in:bank,momo,cash,other',
+            'account_id' => 'required|exists:accounts,id',
+            'notes' => 'nullable|string',
         ]);
 
         $expense->update([
+            'expense_category_id' => $request->expense_category_id,
+            'account_id' => $request->account_id,
             'amount' => $request->amount,
-            'category' => $request->category,
-            'description' => $request->description,
             'date' => $request->date,
+            'channel' => $request->channel,
+            'notes' => $request->notes,
         ]);
 
         return redirect()->route('expenses.index')->with('success', 'Expense updated successfully.');

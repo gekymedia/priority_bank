@@ -15,10 +15,15 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules()
 {
-    return [
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$this->user()->id],
-        'photo' => ['nullable', 'image', 'max:10048'], // 2MB max
-    ];
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$this->user()->id],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'preferred_currency' => ['nullable', 'string', 'max:10'],
+            'notification_email' => ['nullable', 'boolean'],
+            'notification_browser' => ['nullable', 'boolean'],
+            'theme' => ['nullable', 'in:light,dark'],
+            'photo' => ['nullable', 'image', 'max:10048'],
+        ];
 }
 }

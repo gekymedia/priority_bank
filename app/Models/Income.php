@@ -3,15 +3,60 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\IncomeCategory;
+use App\Models\Account;
 
 class Income extends Model
 {
-        protected $fillable = [
-    'user_id', 'source', 'amount', 'date', 'description'
-];
+    use HasFactory;
 
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'user_id',
+        'income_category_id',
+        'account_id',
+        'amount',
+        'date',
+        'channel',
+        'notes',
+    ];
+
+    /**
+     * Cast attributes to appropriate types.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'date' => 'date',
+        'amount' => 'decimal:2',
+    ];
+
+    /**
+     * The user that owns this income record.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Income category (source).
+     */
+    public function category()
+    {
+        return $this->belongsTo(IncomeCategory::class, 'income_category_id');
+    }
+
+    /**
+     * Account into which this income was received.
+     */
+    public function account()
+    {
+        return $this->belongsTo(Account::class);
+    }
 }

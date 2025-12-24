@@ -15,6 +15,41 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    <!-- Credit Union Links -->
+                    <x-nav-link :href="route('savings.index')" :active="request()->routeIs('savings.*')">
+                        {{ __('Savings') }}
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('loan-requests.index')" :active="request()->routeIs('loan-requests.*')">
+                        {{ __('Loan Requests') }}
+                    </x-nav-link>
+
+                    @if(Auth::user()->isAdmin())
+                        <x-nav-link :href="route('loans.index')" :active="request()->routeIs('loans.*')">
+                            {{ __('Loans') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Admin Links -->
+                    @if(Auth::user()->isAdmin())
+                        <x-nav-link :href="route('interest-rates.index')" :active="request()->routeIs('interest-rates.*')">
+                            {{ __('Interest Rates') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Original Financial Links (Admin only) -->
+                    @if(Auth::user()->isAdmin())
+                        <x-nav-link :href="route('incomes.index')" :active="request()->routeIs('incomes.*')">
+                            {{ __('Income') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('expenses.index')" :active="request()->routeIs('expenses.*')">
+                            {{ __('Expenses') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
+                            {{ __('Transactions') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -70,6 +105,36 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            <!-- Credit Union Links -->
+            <x-responsive-nav-link :href="route('savings.index')" :active="request()->routeIs('savings.*')">
+                {{ __('Savings') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('loan-requests.index')" :active="request()->routeIs('loan-requests.*')">
+                {{ __('Loan Requests') }}
+            </x-responsive-nav-link>
+
+            @if(Auth::user()->isAdmin())
+                <x-responsive-nav-link :href="route('loans.index')" :active="request()->routeIs('loans.*')">
+                    {{ __('Loans') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('interest-rates.index')" :active="request()->routeIs('interest-rates.*')">
+                    {{ __('Interest Rates') }}
+                </x-responsive-nav-link>
+
+                <!-- Original Financial Links -->
+                <x-responsive-nav-link :href="route('incomes.index')" :active="request()->routeIs('incomes.*')">
+                    {{ __('Income') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('expenses.index')" :active="request()->routeIs('expenses.*')">
+                    {{ __('Expenses') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
+                    {{ __('Transactions') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

@@ -10,9 +10,14 @@
             @method('PUT')
 
             <div class="mb-4">
-                <label for="source" class="block text-gray-700 font-medium mb-2">Income Source</label>
-                <input type="text" name="source" id="source" class="w-full px-4 py-2 border rounded-lg @error('source') border-red-500 @enderror" value="{{ old('source', $income->source) }}" required>
-                @error('source')
+                <label for="income_category_id" class="block text-gray-700 font-medium mb-2">Income Category</label>
+                <select name="income_category_id" id="income_category_id" class="w-full px-4 py-2 border rounded-lg @error('income_category_id') border-red-500 @enderror" required>
+                    <option value="">Select Category</option>
+                    @foreach($categories as $id => $name)
+                        <option value="{{ $id }}" {{ (old('income_category_id', $income->income_category_id) == $id) ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+                @error('income_category_id')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                 @enderror
             </div>
@@ -34,8 +39,37 @@
             </div>
 
             <div class="mb-4">
-                <label for="description" class="block text-gray-700 font-medium mb-2">Description (Optional)</label>
-                <textarea name="description" id="description" rows="3" class="w-full px-4 py-2 border rounded-lg">{{ old('description', $income->description) }}</textarea>
+                <label for="channel" class="block text-gray-700 font-medium mb-2">Channel</label>
+                <select name="channel" id="channel" class="w-full px-4 py-2 border rounded-lg @error('channel') border-red-500 @enderror" required>
+                    <option value="">Select Channel</option>
+                    @foreach($channels as $value => $label)
+                        <option value="{{ $value }}" {{ (old('channel', $income->channel) == $value) ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('channel')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="account_id" class="block text-gray-700 font-medium mb-2">Account</label>
+                <select name="account_id" id="account_id" class="w-full px-4 py-2 border rounded-lg @error('account_id') border-red-500 @enderror" required>
+                    <option value="">Select Account</option>
+                    @foreach($accounts as $id => $name)
+                        <option value="{{ $id }}" {{ (old('account_id', $income->account_id) == $id) ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+                @error('account_id')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="notes" class="block text-gray-700 font-medium mb-2">Notes (Optional)</label>
+                <textarea name="notes" id="notes" rows="3" class="w-full px-4 py-2 border rounded-lg">{{ old('notes', $income->notes) }}</textarea>
+                @error('notes')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="flex items-center justify-between">

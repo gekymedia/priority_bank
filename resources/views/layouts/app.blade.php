@@ -34,11 +34,15 @@
     <!-- Additional CSS -->
     @stack('styles')
 </head>
-<body class="font-sans antialiased bg-gray-50">
+@php
+    $theme = auth()->check() ? auth()->user()->theme : 'light';
+    $isDark = $theme === 'dark';
+@endphp
+<body class="font-sans antialiased {{ $isDark ? 'bg-gray-900 text-gray-200' : 'bg-gray-50 text-gray-900' }}">
     <div class="flex h-screen">
         <!-- Sidebar -->
         <div class="hidden md:flex md:flex-shrink-0">
-            <div class="flex flex-col w-64 bg-indigo-700 text-white">
+                <div class="flex flex-col w-64 bg-indigo-700 text-white">
                 <div class="flex items-center justify-center h-16 px-4 bg-indigo-800">
                     <span class="text-xl font-bold">{{ config('app.name', 'PriorityBank') }}</span>
                 </div>
@@ -48,21 +52,29 @@
                             <i class="fas fa-tachometer-alt mr-3"></i>
                             Dashboard
                         </a>
-                        <a href="{{ route('transactions.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                            <i class="fas fa-exchange-alt mr-3"></i>
-                            Transactions
+                        <a href="{{ route('incomes.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('incomes.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-arrow-down mr-3"></i>
+                            Income
                         </a>
-                        <a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:bg-indigo-600">
-                            <i class="fas fa-chart-line mr-3"></i>
-                            Reports
+                        <a href="{{ route('expenses.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('expenses.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-arrow-up mr-3"></i>
+                            Expenses
                         </a>
-                        <a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:bg-indigo-600">
+                        <a href="{{ route('loans.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('loans.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-hand-holding-usd mr-3"></i>
+                            Loans
+                        </a>
+                        <a href="{{ route('accounts.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('accounts.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                             <i class="fas fa-wallet mr-3"></i>
                             Accounts
                         </a>
-                        <a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:bg-indigo-600">
-                            <i class="fas fa-cog mr-3"></i>
-                            Settings
+                        <a href="{{ route('budgets.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('budgets.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-pie-chart mr-3"></i>
+                            Budgets
+                        </a>
+                        <a href="{{ route('transactions.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-exchange-alt mr-3"></i>
+                            Transactions
                         </a>
                     </nav>
                 </div>
@@ -115,6 +127,17 @@
                         <button class="text-gray-500 hover:text-gray-600 focus:outline-none">
                             <i class="fas fa-envelope"></i>
                         </button>
+                        <!-- Theme toggle -->
+                        <form method="POST" action="{{ route('theme.toggle') }}">
+                            @csrf
+                            <button type="submit" class="text-gray-500 hover:text-gray-600 focus:outline-none" title="Toggle Theme">
+                                @if($isDark)
+                                    <i class="fas fa-sun"></i>
+                                @else
+                                    <i class="fas fa-moon"></i>
+                                @endif
+                            </button>
+                        </form>
                         
                         <!-- User dropdown -->
                         <div class="relative ml-3">
@@ -152,6 +175,26 @@
                     <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                         <i class="fas fa-tachometer-alt mr-3"></i>
                         Dashboard
+                    </a>
+                    <a href="{{ route('incomes.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('incomes.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-arrow-down mr-3"></i>
+                        Income
+                    </a>
+                    <a href="{{ route('expenses.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('expenses.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-arrow-up mr-3"></i>
+                        Expenses
+                    </a>
+                    <a href="{{ route('loans.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('loans.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-hand-holding-usd mr-3"></i>
+                        Loans
+                    </a>
+                    <a href="{{ route('accounts.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('accounts.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-wallet mr-3"></i>
+                        Accounts
+                    </a>
+                    <a href="{{ route('budgets.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('budgets.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-pie-chart mr-3"></i>
+                        Budgets
                     </a>
                     <a href="{{ route('transactions.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                         <i class="fas fa-exchange-alt mr-3"></i>

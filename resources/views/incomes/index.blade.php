@@ -19,18 +19,24 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach($incomes as $income)
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ $income->source }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ optional($income->category)->name ?? 'Uncategorised' }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">GHS {{ number_format($income->amount, 2) }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ $income->date->format('M d, Y') }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ $income->date?->format('M d, Y') }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap capitalize">{{ $income->channel }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ optional($income->account)->name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ \Illuminate\Support\Str::limit($income->notes, 50) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <a href="{{ route('incomes.edit', $income->id) }}" class="text-blue-500 hover:text-blue-700 mr-3">Edit</a>
                         <form action="{{ route('incomes.destroy', $income->id) }}" method="POST" class="inline">

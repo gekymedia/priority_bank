@@ -1,10 +1,21 @@
 const CACHE_NAME = 'pbg-finance-v2';
 const ASSETS_TO_CACHE = [
   '/',
+  '/offline.html',
   '/pbg_logo_192.png',
   '/pbg_logo_512.png',
-  '/manifest.json'
-  // Add other essential static assets
+  '/manifest.json',
+  '/css/app.css',
+  '/js/app.js',
+  '/login',
+  '/register',
+  '/dashboard',
+  '/incomes',
+  '/expenses',
+  '/loans',
+  '/accounts',
+  '/budgets'
+  // Additional pages can be cached here
 ];
 
 self.addEventListener('install', (event) => {
