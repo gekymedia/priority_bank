@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -9,15 +8,15 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Legal Pages
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy.policy');
+Route::view('/terms-of-service', 'legal.terms-of-service')->name('terms.service');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'openai.errors'])
+    ->middleware(['auth'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    // Profile routes
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Resource routes for financial modules
     Route::resource('incomes', \App\Http\Controllers\IncomeController::class);
@@ -37,9 +36,17 @@ Route::middleware('auth')->group(function () {
     Route::post('loan-requests/{loan_request}/reject', [\App\Http\Controllers\LoanRequestsController::class, 'reject'])->name('loan-requests.reject');
     Route::resource('payments', \App\Http\Controllers\PaymentsController::class);
 
+    // Payment gateway callbacks and webhooks
+    Route::get('payments/callback/{gateway}', [\App\Http\Controllers\PaymentsController::class, 'callback'])->name('payments.callback');
+    Route::post('payments/webhook/{gateway}', [\App\Http\Controllers\PaymentsController::class, 'webhook'])->name('payments.webhook');
+
     // Admin only routes
-    Route::middleware('can:admin')->group(function () {
+    Route::middleware('admin')->group(function () {
         Route::resource('interest-rates', \App\Http\Controllers\InterestRatesController::class);
+
+        // Notifications
+        Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'create'])->name('notifications.create');
+        Route::post('/notifications', [\App\Http\Controllers\NotificationController::class, 'send'])->name('notifications.send');
     });
 
     // Theme toggle route

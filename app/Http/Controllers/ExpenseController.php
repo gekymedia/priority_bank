@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Account;
+use App\Models\SystemRegistry;
+use App\Services\ExternalSystemWebhookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,7 +34,8 @@ class ExpenseController extends Controller
             ->pluck('name', 'id');
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
-        return view('expense.create', compact('categories', 'accounts', 'channels'));
+        $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
+        return view('expense.create', compact('categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -47,9 +50,10 @@ class ExpenseController extends Controller
             'channel' => 'required|in:bank,momo,cash,other',
             'account_id' => 'required|exists:accounts,id',
             'notes' => 'nullable|string',
+            'external_system_id' => 'nullable|exists:systems_registry,id',
         ]);
 
-        Expense::create([
+        $expense = Expense::create([
             'user_id' => Auth::id(),
             'expense_category_id' => $request->expense_category_id,
             'account_id' => $request->account_id,
@@ -57,7 +61,19 @@ class ExpenseController extends Controller
             'date' => $request->date,
             'channel' => $request->channel,
             'notes' => $request->notes,
+            'external_system_id' => $request->external_system_id,
+            'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
+            'sync_status' => $request->external_system_id ? 'pending' : null,
         ]);
+
+        // If external system is selected, push to that system
+        if ($request->external_system_id) {
+            $system = SystemRegistry::find($request->external_system_id);
+            if ($system && $system->callback_url) {
+                $webhookService = new ExternalSystemWebhookService();
+                $webhookService->pushExpense($expense, $system);
+            }
+        }
 
         return redirect()->route('expenses.index')->with('success', 'Expense recorded successfully.');
     }

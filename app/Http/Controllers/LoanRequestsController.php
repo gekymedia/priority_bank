@@ -169,7 +169,7 @@ class LoanRequestsController extends Controller
             'interest_rate_applied' => $interestRate->rate_percentage,
             'total_amount_with_interest' => $totalWithInterest,
             'loan_type' => 'personal',
-            'is_credit_union_loan' => true,
+            'is_group_loan' => true,
             'notes' => $loanRequest->purpose,
         ]);
 

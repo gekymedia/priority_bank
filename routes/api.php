@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\IncomeApiController;
 use App\Http\Controllers\Api\ExpenseApiController;
 use App\Http\Controllers\Api\LoanApiController;
 use App\Http\Controllers\Api\DashboardApiController;
+use App\Http\Controllers\Api\CentralFinanceApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,6 +17,13 @@ use App\Http\Controllers\Api\DashboardApiController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Central Finance API - Public endpoints for external systems
+// These use token-based authentication (API tokens, not user sessions)
+Route::prefix('central-finance')->middleware('auth:sanctum')->group(function () {
+    Route::post('/income', [CentralFinanceApiController::class, 'storeIncome']);
+    Route::post('/expense', [CentralFinanceApiController::class, 'storeExpense']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     // Income endpoints

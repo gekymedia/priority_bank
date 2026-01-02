@@ -5,7 +5,7 @@
     @if(Auth::user()->isAdmin())
         <h1 class="text-3xl font-bold mb-8">Admin Financial Dashboard</h1>
     @else
-        <h1 class="text-3xl font-bold mb-8">Credit Union Dashboard</h1>
+        <h1 class="text-3xl font-bold mb-8">Savings Group Dashboard</h1>
     @endif
 @if($errors->has('ai_error'))
     <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
@@ -395,7 +395,7 @@
                 </div>
             </a>
 
-            <a href="#" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <a href="{{ route('payments.create') }}" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                 <div class="text-center">
                     <div class="bg-purple-100 p-4 rounded-full w-16 h-16 mx-auto mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">

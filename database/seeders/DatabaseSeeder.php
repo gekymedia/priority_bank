@@ -50,6 +50,9 @@ class DatabaseSeeder extends Seeder
         // Seed test users
         $this->call(TestUsersSeeder::class);
 
+        // Seed systems registry
+        $this->call(SystemsRegistrySeeder::class);
+
         // Create group funds record
         \App\Models\GroupFund::create([
             'total_available' => 0,

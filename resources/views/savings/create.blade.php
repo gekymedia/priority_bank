@@ -68,7 +68,7 @@
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-blue-700">
-                                <strong>Important:</strong> By depositing this amount, you agree to make these funds available for lending to other group members who need loans. The money will be managed by the credit union administrator.
+                                <strong>Important:</strong> By depositing this amount, you agree to make these funds available for lending to other group members who need loans. The money will be managed by the savings group administrator.
                             </p>
                         </div>
                     </div>

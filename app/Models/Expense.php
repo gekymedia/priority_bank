@@ -24,6 +24,12 @@ class Expense extends Model
         'date',
         'channel',
         'notes',
+        'external_system_id',
+        'external_transaction_id',
+        'idempotency_key',
+        'sync_status',
+        'synced_at',
+        'sync_error',
     ];
 
     /**
@@ -34,6 +40,7 @@ class Expense extends Model
     protected $casts = [
         'date' => 'date',
         'amount' => 'decimal:2',
+        'synced_at' => 'datetime',
     ];
 
     /**
@@ -58,5 +65,13 @@ class Expense extends Model
     public function account()
     {
         return $this->belongsTo(Account::class);
+    }
+
+    /**
+     * External system that originated this expense.
+     */
+    public function externalSystem()
+    {
+        return $this->belongsTo(SystemRegistry::class, 'external_system_id');
     }
 }

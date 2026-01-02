@@ -98,7 +98,7 @@ class DashboardController extends Controller
             ->latest()->take(5)->get();
 
         $recentLoans = Loan::where('user_id', $user->id)
-            ->where('is_credit_union_loan', true)
+            ->where('is_group_loan', true)
             ->latest()->take(5)->get();
 
         $recentPayments = Payment::where('user_id', $user->id)

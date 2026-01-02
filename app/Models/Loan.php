@@ -37,7 +37,7 @@ class Loan extends Model
         'remaining_balance',
         'disbursement_date',
         'loan_type',
-        'is_credit_union_loan',
+        'is_group_loan',
     ];
 
     /**
@@ -52,7 +52,7 @@ class Loan extends Model
         'interest_rate_applied' => 'decimal:2',
         'total_amount_with_interest' => 'decimal:2',
         'remaining_balance' => 'decimal:2',
-        'is_credit_union_loan' => 'boolean',
+        'is_group_loan' => 'boolean',
     ];
 
     /**
@@ -108,7 +108,7 @@ class Loan extends Model
      */
     public function getCalculatedRemainingBalanceAttribute()
     {
-        if ($this->is_credit_union_loan) {
+        if ($this->is_group_loan) {
             return max(0, ($this->total_amount_with_interest ?? $this->amount) - $this->total_paid);
         }
         return $this->amount - $this->returned_amount;
@@ -119,7 +119,7 @@ class Loan extends Model
      */
     public function updateRemainingBalance()
     {
-        if ($this->is_credit_union_loan) {
+        if ($this->is_group_loan) {
             $this->remaining_balance = $this->calculated_remaining_balance;
             $this->save();
 
@@ -178,7 +178,7 @@ class Loan extends Model
      */
     public function scopeCreditUnionLoans($query)
     {
-        return $query->where('is_credit_union_loan', true);
+        return $query->where('is_group_loan', true);
     }
 
     /**

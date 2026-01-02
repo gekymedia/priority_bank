@@ -88,7 +88,7 @@
                         <div class="ml-3">
                             <h4 class="text-sm font-medium text-blue-800">Important Terms:</h4>
                             <ul class="mt-2 text-sm text-blue-700 list-disc list-inside space-y-1">
-                                <li>Your loan request will be reviewed by the credit union administrator</li>
+                                <li>Your loan request will be reviewed by the savings group administrator</li>
                                 <li>Interest rates and final approval are at the discretion of the admin</li>
                                 <li>You must repay the loan according to the agreed terms</li>
                                 <li>Late payments may incur additional charges</li>
@@ -103,7 +103,7 @@
                     <label class="flex items-start">
                         <input type="checkbox" id="terms_agreed" name="terms_agreed" value="1" class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" required>
                         <span class="ml-2 text-sm text-gray-700">
-                            I agree to the terms and conditions of the credit union loan agreement and understand that this is a formal loan request.
+                            I agree to the terms and conditions of the savings group loan agreement and understand that this is a formal loan request.
                         </span>
                     </label>
                     @error('terms_agreed')

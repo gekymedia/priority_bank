@@ -49,7 +49,7 @@ class GroupFund extends Model
     public function updateTotals()
     {
         $this->total_savings = \App\Models\Saving::where('status', 'available')->sum('amount');
-        $this->total_loaned = \App\Models\Loan::where('is_credit_union_loan', true)
+        $this->total_loaned = \App\Models\Loan::where('is_group_loan', true)
                                               ->where('status', 'borrowed')
                                               ->sum('amount');
         $this->total_available = $this->total_savings;

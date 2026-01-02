@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Income;
 use App\Models\IncomeCategory;
 use App\Models\Account;
+use App\Models\SystemRegistry;
+use App\Services\ExternalSystemWebhookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -33,7 +35,8 @@ class IncomeController extends Controller
             ->pluck('name', 'id');
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
-        return view('income.create', compact('categories', 'accounts', 'channels'));
+        $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
+        return view('income.create', compact('categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -48,9 +51,10 @@ class IncomeController extends Controller
             'channel' => 'required|in:bank,momo,cash,other',
             'account_id' => 'required|exists:accounts,id',
             'notes' => 'nullable|string',
+            'external_system_id' => 'nullable|exists:systems_registry,id',
         ]);
 
-        Income::create([
+        $income = Income::create([
             'user_id' => Auth::id(),
             'income_category_id' => $request->income_category_id,
             'account_id' => $request->account_id,
@@ -58,7 +62,19 @@ class IncomeController extends Controller
             'date' => $request->date,
             'channel' => $request->channel,
             'notes' => $request->notes,
+            'external_system_id' => $request->external_system_id,
+            'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
+            'sync_status' => $request->external_system_id ? 'pending' : null,
         ]);
+
+        // If external system is selected, push to that system
+        if ($request->external_system_id) {
+            $system = SystemRegistry::find($request->external_system_id);
+            if ($system && $system->callback_url) {
+                $webhookService = new ExternalSystemWebhookService();
+                $webhookService->pushIncome($income, $system);
+            }
+        }
 
         return redirect()->route('incomes.index')->with('success', 'Income recorded successfully.');
     }

@@ -16,7 +16,7 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
-                    <!-- Credit Union Links -->
+                    <!-- Savings Group Links -->
                     <x-nav-link :href="route('savings.index')" :active="request()->routeIs('savings.*')">
                         {{ __('Savings') }}
                     </x-nav-link>
@@ -35,6 +35,16 @@
                     @if(Auth::user()->isAdmin())
                         <x-nav-link :href="route('interest-rates.index')" :active="request()->routeIs('interest-rates.*')">
                             {{ __('Interest Rates') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('notifications.create')" :active="request()->routeIs('notifications.*')">
+                            {{ __('Notifications') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('loans.index')" :active="request()->routeIs('loans.*')">
+                            {{ __('All Loans') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('payments.index')" :active="request()->routeIs('payments.*')">
+                            {{ __('Payments') }}
                         </x-nav-link>
                     @endif
 
@@ -106,7 +116,7 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            <!-- Credit Union Links -->
+            <!-- Savings Group Links -->
             <x-responsive-nav-link :href="route('savings.index')" :active="request()->routeIs('savings.*')">
                 {{ __('Savings') }}
             </x-responsive-nav-link>
@@ -122,6 +132,13 @@
 
                 <x-responsive-nav-link :href="route('interest-rates.index')" :active="request()->routeIs('interest-rates.*')">
                     {{ __('Interest Rates') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('notifications.create')" :active="request()->routeIs('notifications.*')">
+                    {{ __('Notifications') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('payments.index')" :active="request()->routeIs('payments.*')">
+                    {{ __('Payments') }}
                 </x-responsive-nav-link>
 
                 <!-- Original Financial Links -->

@@ -159,37 +159,11 @@ class User extends Authenticatable
      */
     public function getLoanBalanceAttribute()
     {
-        return $this->loans()->where('is_credit_union_loan', true)
+        return $this->loans()->where('is_group_loan', true)
                             ->where('status', 'borrowed')
                             ->sum('remaining_balance');
     }
 
-    /**
-     * Get the user's available savings balance.
-     */
-    public function getSavingsBalanceAttribute()
-    {
-        return $this->savings()->where('status', 'available')->sum('amount');
-    }
-
-    /**
-     * Get the user's outstanding loan balance.
-     */
-    public function getLoanBalanceAttribute()
-    {
-        return $this->loans()
-            ->where('is_credit_union_loan', true)
-            ->where('status', 'borrowed')
-            ->sum('remaining_balance');
-    }
-
-    /**
-     * Get the user's total credit union balance (savings - loans).
-     */
-    public function getNetBalanceAttribute()
-    {
-        return $this->savings_balance - $this->loan_balance;
-    }
 
     /**
      * Get detailed balance breakdown.
@@ -219,7 +193,7 @@ class User extends Authenticatable
         $savings = $this->savings()->selectRaw("'saving' as type, id, amount, deposit_date as date, status, notes, null as loan_id, null as payment_method")
                                ->get();
 
-        $loans = $this->loans()->where('is_credit_union_loan', true)
+        $loans = $this->loans()->where('is_group_loan', true)
                               ->selectRaw("'loan' as type, id, amount, disbursement_date as date, status, notes, null as loan_id, null as payment_method")
                               ->get();
 
