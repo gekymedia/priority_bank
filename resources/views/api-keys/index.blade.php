@@ -39,9 +39,9 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Permissions</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Used</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage & Expiration</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -50,13 +50,24 @@
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $token->name }}</div>
-                            <div class="text-xs text-gray-500">Token ID: {{ substr($token->token, 0, 20) }}...</div>
+                            <div class="text-xs text-gray-500">ID: #{{ $token->id }}</div>
+                            @if($token->abilities)
+                                <div class="text-xs text-blue-600 mt-1">Permissions: {{ is_string($token->abilities) ? $token->abilities : implode(', ', json_decode($token->abilities, true) ?? []) }}</div>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $token->created_at->format('M d, Y') }}
+                            <div>{{ $token->created_at->format('M d, Y') }}</div>
+                            <div class="text-xs text-gray-400">{{ $token->created_at->format('H:i') }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $token->last_used_at ? $token->last_used_at->format('M d, Y H:i') : 'Never' }}
+                            <div>{{ $token->last_used_at ? $token->last_used_at->format('M d, Y H:i') : 'Never' }}</div>
+                            @if($token->expires_at)
+                                <div class="text-xs {{ $token->expires_at->isPast() ? 'text-red-600' : ($token->expires_at->isFuture() && $token->expires_at->diffInDays(now()) < 7 ? 'text-yellow-600' : 'text-gray-400') }}">
+                                    Expires: {{ $token->expires_at->format('M d, Y') }}
+                                </div>
+                            @else
+                                <div class="text-xs text-gray-400">No expiration</div>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <form action="{{ route('api-keys.destroy', $token->id) }}" method="POST" class="inline">
