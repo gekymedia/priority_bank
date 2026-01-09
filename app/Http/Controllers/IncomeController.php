@@ -91,7 +91,8 @@ class IncomeController extends Controller
             ->pluck('name', 'id');
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
-        return view('incomes.edit', compact('income', 'categories', 'accounts', 'channels'));
+        $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
+        return view('incomes.edit', compact('income', 'categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -107,6 +108,7 @@ class IncomeController extends Controller
             'channel' => 'required|in:bank,momo,cash,other',
             'account_id' => 'required|exists:accounts,id',
             'notes' => 'nullable|string',
+            'external_system_id' => 'nullable|exists:systems_registry,id',
         ]);
 
         $income->update([
@@ -116,7 +118,17 @@ class IncomeController extends Controller
             'date' => $request->date,
             'channel' => $request->channel,
             'notes' => $request->notes,
+            'external_system_id' => $request->external_system_id,
         ]);
+
+        // If external system is selected and changed, sync to that system
+        if ($request->external_system_id && $income->wasChanged('external_system_id')) {
+            $system = SystemRegistry::find($request->external_system_id);
+            if ($system && $system->callback_url) {
+                $webhookService = new ExternalSystemWebhookService();
+                $webhookService->pushIncome($income, $system);
+            }
+        }
 
         return redirect()->route('incomes.index')->with('success', 'Income updated successfully.');
     }

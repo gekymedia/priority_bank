@@ -71,6 +71,20 @@
                 @enderror
             </div>
 
+            <div class="mb-4">
+                <label for="external_system_id" class="block text-gray-700 font-medium mb-2">Sync to External System (Optional)</label>
+                <select name="external_system_id" id="external_system_id" class="w-full px-4 py-2 border rounded-lg @error('external_system_id') border-red-500 @enderror">
+                    <option value="">None - Internal Only</option>
+                    @foreach($systems as $id => $name)
+                        <option value="{{ $id }}" {{ old('external_system_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+                @error('external_system_id')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+                <p class="text-gray-500 text-xs mt-1">Select an external system to sync this expense record. If selected, this transaction will be sent to the external system via webhook.</p>
+            </div>
+
             <div class="flex items-center justify-between">
                 <a href="{{ route('expenses.index') }}" class="text-gray-600 hover:text-gray-800">Back to Expenses</a>
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
