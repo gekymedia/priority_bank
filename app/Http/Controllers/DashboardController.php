@@ -204,15 +204,20 @@ class DashboardController extends Controller
             'currency' => 'GHS'
         ];
 
+        $apiKey = config('services.openai.api_key');
+        
+        // If OpenAI API key is not set, use basic insights
+        if (empty($apiKey)) {
+            return $this->generateBasicInsights($financialData);
+        }
+
         $prompt = "Analyze this financial data and provide 3–4 concise insights with actionable recommendations:\n\n"
             . json_encode($promptData, JSON_PRETTY_PRINT) . "\n\n"
             . "Focus on: spending patterns, savings opportunities, unusual expenses, and loan impact. "
             . "Use simple language and format response in <p> HTML blocks.";
 
         try {
-  $client = \OpenAI::client(config('services.openai.api_key'));
-
-
+            $client = \OpenAI::client($apiKey);
 
             $response = $client->chat()->create([
                 'model' => 'gpt-4',
