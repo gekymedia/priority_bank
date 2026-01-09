@@ -22,6 +22,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // API Key Management routes
+    Route::get('/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
+    Route::post('/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'store'])->name('api-keys.store');
+    Route::delete('/api-keys/{id}', [\App\Http\Controllers\ApiKeyController::class, 'destroy'])->name('api-keys.destroy');
+    Route::get('/api-keys/documentation', [\App\Http\Controllers\ApiKeyController::class, 'documentation'])->name('api-keys.documentation');
+
     // Resource routes for financial modules
     Route::resource('incomes', \App\Http\Controllers\IncomeController::class);
     Route::resource('expenses', \App\Http\Controllers\ExpenseController::class);

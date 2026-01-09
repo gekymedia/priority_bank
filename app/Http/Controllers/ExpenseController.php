@@ -20,7 +20,7 @@ class ExpenseController extends Controller
         $expenses = Expense::where('user_id', Auth::id())
             ->with(['category', 'account'])
             ->latest()->paginate(10);
-        return view('expense.index', compact('expenses'));
+        return view('expenses.index', compact('expenses'));
     }
 
     /**
@@ -35,7 +35,7 @@ class ExpenseController extends Controller
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
         $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
-        return view('expense.create', compact('categories', 'accounts', 'channels', 'systems'));
+        return view('expenses.create', compact('categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -90,7 +90,7 @@ class ExpenseController extends Controller
             ->pluck('name', 'id');
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
-        return view('expense.edit', compact('expense', 'categories', 'accounts', 'channels'));
+        return view('expenses.edit', compact('expense', 'categories', 'accounts', 'channels'));
     }
 
     /**

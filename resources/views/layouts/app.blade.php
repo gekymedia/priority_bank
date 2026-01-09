@@ -77,6 +77,10 @@
                             <i class="fas fa-exchange-alt mr-3"></i>
                             Transactions
                         </a>
+                        <a href="{{ route('api-keys.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('api-keys.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-key mr-3"></i>
+                            API Keys
+                        </a>
                     </nav>
                 </div>
                 <div class="p-4 border-t border-indigo-600">
@@ -200,6 +204,10 @@
                     <a href="{{ route('transactions.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                         <i class="fas fa-exchange-alt mr-3"></i>
                         Transactions
+                    </a>
+                    <a href="{{ route('api-keys.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('api-keys.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                        <i class="fas fa-key mr-3"></i>
+                        API Keys
                     </a>
                 </div>
             </div>

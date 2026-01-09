@@ -20,7 +20,7 @@ class IncomeController extends Controller
         $incomes = Income::where('user_id', Auth::id())
             ->with(['category', 'account'])
             ->latest()->paginate(10);
-        return view('income.index', compact('incomes'));
+        return view('incomes.index', compact('incomes'));
     }
 
     /**
@@ -36,7 +36,7 @@ class IncomeController extends Controller
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
         $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
-        return view('income.create', compact('categories', 'accounts', 'channels', 'systems'));
+        return view('incomes.create', compact('categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -91,7 +91,7 @@ class IncomeController extends Controller
             ->pluck('name', 'id');
         $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
-        return view('income.edit', compact('income', 'categories', 'accounts', 'channels'));
+        return view('incomes.edit', compact('income', 'categories', 'accounts', 'channels'));
     }
 
     /**
