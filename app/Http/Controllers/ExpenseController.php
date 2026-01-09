@@ -43,39 +43,83 @@ class ExpenseController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'expense_category_id' => 'required|exists:expense_categories,id',
-            'date' => 'required|date',
-            'channel' => 'required|in:bank,momo,cash,other',
-            'account_id' => 'required|exists:accounts,id',
-            'notes' => 'nullable|string',
-            'external_system_id' => 'nullable|exists:systems_registry,id',
-        ]);
+        // Check if expenses array exists (multiple records) or single record
+        if ($request->has('expenses') && is_array($request->expenses)) {
+            // Handle multiple expense records
+            $validated = $request->validate([
+                'expenses' => 'required|array|min:1',
+                'expenses.*.amount' => 'required|numeric|min:0',
+                'expenses.*.expense_category_id' => 'required|exists:expense_categories,id',
+                'expenses.*.date' => 'required|date',
+                'expenses.*.channel' => 'required|in:bank,momo,cash,other',
+                'expenses.*.account_id' => 'required|exists:accounts,id',
+                'expenses.*.notes' => 'nullable|string',
+                'expenses.*.external_system_id' => 'nullable|exists:systems_registry,id',
+            ]);
 
-        $expense = Expense::create([
-            'user_id' => Auth::id(),
-            'expense_category_id' => $request->expense_category_id,
-            'account_id' => $request->account_id,
-            'amount' => $request->amount,
-            'date' => $request->date,
-            'channel' => $request->channel,
-            'notes' => $request->notes,
-            'external_system_id' => $request->external_system_id,
-            'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
-            'sync_status' => $request->external_system_id ? 'pending' : null,
-        ]);
+            $savedCount = 0;
+            foreach ($validated['expenses'] as $expenseData) {
+                $expense = Expense::create([
+                    'user_id' => Auth::id(),
+                    'expense_category_id' => $expenseData['expense_category_id'],
+                    'account_id' => $expenseData['account_id'],
+                    'amount' => $expenseData['amount'],
+                    'date' => $expenseData['date'],
+                    'channel' => $expenseData['channel'],
+                    'notes' => $expenseData['notes'] ?? null,
+                    'external_system_id' => $expenseData['external_system_id'] ?? null,
+                    'external_transaction_id' => isset($expenseData['external_system_id']) ? 'pb_' . time() . '_' . Auth::id() . '_' . $savedCount : null,
+                    'sync_status' => isset($expenseData['external_system_id']) ? 'pending' : null,
+                ]);
 
-        // If external system is selected, push to that system
-        if ($request->external_system_id) {
-            $system = SystemRegistry::find($request->external_system_id);
-            if ($system && $system->callback_url) {
-                $webhookService = new ExternalSystemWebhookService();
-                $webhookService->pushExpense($expense, $system);
+                // If external system is selected, push to that system
+                if (isset($expenseData['external_system_id'])) {
+                    $system = SystemRegistry::find($expenseData['external_system_id']);
+                    if ($system && $system->callback_url) {
+                        $webhookService = new ExternalSystemWebhookService();
+                        $webhookService->pushExpense($expense, $system);
+                    }
+                }
+                $savedCount++;
             }
-        }
 
-        return redirect()->route('expenses.index')->with('success', 'Expense recorded successfully.');
+            return redirect()->route('expenses.index')->with('success', $savedCount . ' expense record(s) recorded successfully.');
+        } else {
+            // Handle single expense record (backward compatibility)
+            $request->validate([
+                'amount' => 'required|numeric|min:0',
+                'expense_category_id' => 'required|exists:expense_categories,id',
+                'date' => 'required|date',
+                'channel' => 'required|in:bank,momo,cash,other',
+                'account_id' => 'required|exists:accounts,id',
+                'notes' => 'nullable|string',
+                'external_system_id' => 'nullable|exists:systems_registry,id',
+            ]);
+
+            $expense = Expense::create([
+                'user_id' => Auth::id(),
+                'expense_category_id' => $request->expense_category_id,
+                'account_id' => $request->account_id,
+                'amount' => $request->amount,
+                'date' => $request->date,
+                'channel' => $request->channel,
+                'notes' => $request->notes,
+                'external_system_id' => $request->external_system_id,
+                'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
+                'sync_status' => $request->external_system_id ? 'pending' : null,
+            ]);
+
+            // If external system is selected, push to that system
+            if ($request->external_system_id) {
+                $system = SystemRegistry::find($request->external_system_id);
+                if ($system && $system->callback_url) {
+                    $webhookService = new ExternalSystemWebhookService();
+                    $webhookService->pushExpense($expense, $system);
+                }
+            }
+
+            return redirect()->route('expenses.index')->with('success', 'Expense recorded successfully.');
+        }
     }
 
     /**

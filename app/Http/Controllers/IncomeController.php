@@ -44,39 +44,83 @@ class IncomeController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'income_category_id' => 'required|exists:income_categories,id',
-            'date' => 'required|date',
-            'channel' => 'required|in:bank,momo,cash,other',
-            'account_id' => 'required|exists:accounts,id',
-            'notes' => 'nullable|string',
-            'external_system_id' => 'nullable|exists:systems_registry,id',
-        ]);
+        // Check if incomes array exists (multiple records) or single record
+        if ($request->has('incomes') && is_array($request->incomes)) {
+            // Handle multiple income records
+            $validated = $request->validate([
+                'incomes' => 'required|array|min:1',
+                'incomes.*.amount' => 'required|numeric|min:0',
+                'incomes.*.income_category_id' => 'required|exists:income_categories,id',
+                'incomes.*.date' => 'required|date',
+                'incomes.*.channel' => 'required|in:bank,momo,cash,other',
+                'incomes.*.account_id' => 'required|exists:accounts,id',
+                'incomes.*.notes' => 'nullable|string',
+                'incomes.*.external_system_id' => 'nullable|exists:systems_registry,id',
+            ]);
 
-        $income = Income::create([
-            'user_id' => Auth::id(),
-            'income_category_id' => $request->income_category_id,
-            'account_id' => $request->account_id,
-            'amount' => $request->amount,
-            'date' => $request->date,
-            'channel' => $request->channel,
-            'notes' => $request->notes,
-            'external_system_id' => $request->external_system_id,
-            'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
-            'sync_status' => $request->external_system_id ? 'pending' : null,
-        ]);
+            $savedCount = 0;
+            foreach ($validated['incomes'] as $incomeData) {
+                $income = Income::create([
+                    'user_id' => Auth::id(),
+                    'income_category_id' => $incomeData['income_category_id'],
+                    'account_id' => $incomeData['account_id'],
+                    'amount' => $incomeData['amount'],
+                    'date' => $incomeData['date'],
+                    'channel' => $incomeData['channel'],
+                    'notes' => $incomeData['notes'] ?? null,
+                    'external_system_id' => $incomeData['external_system_id'] ?? null,
+                    'external_transaction_id' => isset($incomeData['external_system_id']) ? 'pb_' . time() . '_' . Auth::id() . '_' . $savedCount : null,
+                    'sync_status' => isset($incomeData['external_system_id']) ? 'pending' : null,
+                ]);
 
-        // If external system is selected, push to that system
-        if ($request->external_system_id) {
-            $system = SystemRegistry::find($request->external_system_id);
-            if ($system && $system->callback_url) {
-                $webhookService = new ExternalSystemWebhookService();
-                $webhookService->pushIncome($income, $system);
+                // If external system is selected, push to that system
+                if (isset($incomeData['external_system_id'])) {
+                    $system = SystemRegistry::find($incomeData['external_system_id']);
+                    if ($system && $system->callback_url) {
+                        $webhookService = new ExternalSystemWebhookService();
+                        $webhookService->pushIncome($income, $system);
+                    }
+                }
+                $savedCount++;
             }
-        }
 
-        return redirect()->route('incomes.index')->with('success', 'Income recorded successfully.');
+            return redirect()->route('incomes.index')->with('success', $savedCount . ' income record(s) recorded successfully.');
+        } else {
+            // Handle single income record (backward compatibility)
+            $request->validate([
+                'amount' => 'required|numeric|min:0',
+                'income_category_id' => 'required|exists:income_categories,id',
+                'date' => 'required|date',
+                'channel' => 'required|in:bank,momo,cash,other',
+                'account_id' => 'required|exists:accounts,id',
+                'notes' => 'nullable|string',
+                'external_system_id' => 'nullable|exists:systems_registry,id',
+            ]);
+
+            $income = Income::create([
+                'user_id' => Auth::id(),
+                'income_category_id' => $request->income_category_id,
+                'account_id' => $request->account_id,
+                'amount' => $request->amount,
+                'date' => $request->date,
+                'channel' => $request->channel,
+                'notes' => $request->notes,
+                'external_system_id' => $request->external_system_id,
+                'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
+                'sync_status' => $request->external_system_id ? 'pending' : null,
+            ]);
+
+            // If external system is selected, push to that system
+            if ($request->external_system_id) {
+                $system = SystemRegistry::find($request->external_system_id);
+                if ($system && $system->callback_url) {
+                    $webhookService = new ExternalSystemWebhookService();
+                    $webhookService->pushIncome($income, $system);
+                }
+            }
+
+            return redirect()->route('incomes.index')->with('success', 'Income recorded successfully.');
+        }
     }
 
     /**

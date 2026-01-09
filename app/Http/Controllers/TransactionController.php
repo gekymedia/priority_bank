@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
  * @uses \Illuminate\Foundation\Auth\Access\AuthorizesRequests
  */
 use App\Models\Transaction;
+use App\Models\SystemRegistry;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
@@ -35,11 +36,13 @@ class TransactionController extends Controller
      */
     public function create()
     {
+        $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
         return view('transactions.create', [
             'categories' => [
                 'income' => ['Salary', 'Bonus', 'Freelance', 'Investment'],
                 'expense' => ['Food', 'Transport', 'Housing', 'Entertainment']
-            ]
+            ],
+            'systems' => $systems
         ]);
     }
 
@@ -53,7 +56,8 @@ class TransactionController extends Controller
             'category' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'external_system_id' => 'nullable|exists:systems_registry,id'
         ]);
 
         Transaction::create([
@@ -62,7 +66,8 @@ class TransactionController extends Controller
             'category' => $validated['category'],
             'amount' => $validated['amount'],
             'date' => $validated['date'],
-            'description' => $validated['description']
+            'description' => $validated['description'],
+            'external_system_id' => $validated['external_system_id'] ?? null
         ]);
 
         return redirect()->route('transactions.index')
