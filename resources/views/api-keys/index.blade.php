@@ -39,7 +39,7 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Permissions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name, System & Permissions</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage & Expiration</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -47,12 +47,42 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($tokens as $token)
+                    @php
+                        // Find system linked to this token via metadata
+                        $linkedSystem = null;
+                        foreach($systems as $system) {
+                            $metadata = $system->metadata ?? [];
+                            if (isset($metadata['api_token_id']) && $metadata['api_token_id'] == $token->id) {
+                                $linkedSystem = $system;
+                                break;
+                            }
+                        }
+                    @endphp
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $token->name }}</div>
                             <div class="text-xs text-gray-500">ID: #{{ $token->id }}</div>
+                            @if($linkedSystem)
+                                <div class="text-xs text-green-600 mt-1">
+                                    System: {{ $linkedSystem->name }} ({{ $linkedSystem->system_id }})
+                                </div>
+                                @if($linkedSystem->callback_url)
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Callback: {{ $linkedSystem->callback_url }}
+                                    </div>
+                                @endif
+                            @endif
                             @if($token->abilities)
-                                <div class="text-xs text-blue-600 mt-1">Permissions: {{ is_string($token->abilities) ? $token->abilities : implode(', ', json_decode($token->abilities, true) ?? []) }}</div>
+                                @php
+                                    $abilities = is_array($token->abilities) 
+                                        ? $token->abilities 
+                                        : (is_string($token->abilities) 
+                                            ? json_decode($token->abilities, true) ?? [] 
+                                            : []);
+                                @endphp
+                                @if(!empty($abilities))
+                                    <div class="text-xs text-blue-600 mt-1">Permissions: {{ implode(', ', $abilities) }}</div>
+                                @endif
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -96,7 +126,7 @@
 
 <!-- Create Token Modal -->
 <div id="createTokenModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Create New API Key</h3>
             <form action="{{ route('api-keys.store') }}" method="POST">
@@ -108,6 +138,27 @@
                            placeholder="e.g., Production API, Development API"
                            required>
                     <p class="mt-1 text-xs text-gray-500">Give your API key a descriptive name for easy identification.</p>
+                </div>
+                <div class="mb-4">
+                    <label for="system_id" class="block text-sm font-medium text-gray-700 mb-2">External System (Optional)</label>
+                    <select name="system_id" id="system_id" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            onchange="toggleCallbackUrl(this.value)">
+                        <option value="">Select a system...</option>
+                        @foreach($systems as $system)
+                            <option value="{{ $system->system_id }}" data-callback="{{ $system->callback_url ?? '' }}">
+                                {{ $system->name }} ({{ $system->system_id }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Link this API key to an external system for webhook configuration.</p>
+                </div>
+                <div class="mb-4" id="callback_url_group" style="display: none;">
+                    <label for="callback_url" class="block text-sm font-medium text-gray-700 mb-2">Callback URL</label>
+                    <input type="url" name="callback_url" id="callback_url" 
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
+                           placeholder="https://example.com">
+                    <p class="mt-1 text-xs text-gray-500">Webhook URL where Priority Bank will send data back to this system.</p>
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" 
@@ -124,4 +175,27 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleCallbackUrl(systemId) {
+    const callbackUrlGroup = document.getElementById('callback_url_group');
+    const callbackUrlInput = document.getElementById('callback_url');
+    const select = document.getElementById('system_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (systemId) {
+        callbackUrlGroup.style.display = 'block';
+        // Pre-fill with existing callback URL if available
+        const existingCallback = selectedOption.getAttribute('data-callback');
+        if (existingCallback) {
+            callbackUrlInput.value = existingCallback;
+        } else {
+            callbackUrlInput.value = '';
+        }
+    } else {
+        callbackUrlGroup.style.display = 'none';
+        callbackUrlInput.value = '';
+    }
+}
+</script>
 @endsection

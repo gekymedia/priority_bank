@@ -109,8 +109,8 @@
                 <div class="flex items-center justify-between px-6 py-3">
                     <!-- Mobile menu button -->
                     <div class="md:hidden">
-                        <button @click="open = !open" class="text-gray-500 hover:text-gray-600 focus:outline-none">
-                            <i class="fas fa-bars"></i>
+                        <button id="mobile-menu-toggle" class="text-gray-500 hover:text-gray-600 focus:outline-none">
+                            <i class="fas fa-bars text-xl"></i>
                         </button>
                     </div>
                     
@@ -175,8 +175,9 @@
             </header>
 
             <!-- Mobile sidebar (hidden by default) -->
-            <div class="md:hidden" x-show="open" @click.away="open = false" style="display: none;">
-                <div class="pt-2 pb-3 space-y-1 bg-indigo-700 text-white">
+            <div id="mobile-sidebar" class="md:hidden hidden fixed inset-0 z-50 bg-black bg-opacity-50">
+                <div class="fixed left-0 top-0 bottom-0 w-64 bg-indigo-700 text-white overflow-y-auto">
+                    <div class="pt-2 pb-3 space-y-1">
                     <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                         <i class="fas fa-tachometer-alt mr-3"></i>
                         Dashboard
@@ -209,6 +210,13 @@
                         <i class="fas fa-key mr-3"></i>
                         API Keys
                     </a>
+                    </div>
+                    <!-- Close button -->
+                    <div class="px-4 py-3 border-t border-indigo-600">
+                        <button id="mobile-menu-close" class="w-full text-left px-4 py-2 text-sm font-medium text-indigo-200 hover:text-white hover:bg-indigo-600 rounded">
+                            <i class="fas fa-times mr-2"></i> Close Menu
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -228,20 +236,55 @@
     <!-- Scripts -->
     @stack('scripts')
     <script>
-        // Simple Alpine.js for mobile menu toggle
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('app', () => ({
-                open: false,
-                toggle() {
-                    this.open = !this.open
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            const mobileMenuClose = document.getElementById('mobile-menu-close');
+            
+            function closeMobileMenu() {
+                if (mobileSidebar) {
+                    mobileSidebar.classList.add('hidden');
                 }
-            }))
-        })
+            }
+            
+            function openMobileMenu() {
+                if (mobileSidebar) {
+                    mobileSidebar.classList.remove('hidden');
+                }
+            }
+            
+            if (mobileMenuToggle && mobileSidebar) {
+                mobileMenuToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openMobileMenu();
+                });
+                
+                if (mobileMenuClose) {
+                    mobileMenuClose.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        closeMobileMenu();
+                    });
+                }
+                
+                // Close mobile menu when clicking outside (on the overlay)
+                mobileSidebar.addEventListener('click', function(e) {
+                    if (e.target === mobileSidebar) {
+                        closeMobileMenu();
+                    }
+                });
+            }
 
-        // User dropdown toggle
-        document.getElementById('user-menu-button').addEventListener('click', function() {
-            const menu = this.nextElementSibling;
-            menu.classList.toggle('hidden');
+            // User dropdown toggle
+            const userMenuButton = document.getElementById('user-menu-button');
+            if (userMenuButton) {
+                userMenuButton.addEventListener('click', function() {
+                    const menu = this.nextElementSibling;
+                    if (menu) {
+                        menu.classList.toggle('hidden');
+                    }
+                });
+            }
         });
     </script>
 
