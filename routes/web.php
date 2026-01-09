@@ -39,6 +39,10 @@ Route::middleware('auth')->group(function () {
     // Existing transactions resource
     Route::resource('transactions', \App\Http\Controllers\TransactionController::class);
 
+    // Category Management routes
+    Route::resource('income-categories', \App\Http\Controllers\IncomeCategoryController::class)->except(['show']);
+    Route::resource('expense-categories', \App\Http\Controllers\ExpenseCategoryController::class)->except(['show']);
+
     // Credit Union routes
     Route::resource('savings', \App\Http\Controllers\SavingsController::class);
     Route::resource('loan-requests', \App\Http\Controllers\LoanRequestsController::class);
