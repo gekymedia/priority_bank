@@ -21,18 +21,24 @@ use OpenAI;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function adminDashboard()
     {
         $user = Auth::user();
-
-        if ($user->isAdmin()) {
-            return $this->adminDashboard($user);
-        } else {
-            return $this->userDashboard($user);
+        
+        if (!$user->isAdmin()) {
+            abort(403, 'Access denied. Admin privileges required.');
         }
+        
+        return $this->adminDashboardData($user);
     }
 
-    protected function adminDashboard($user)
+    public function userDashboard()
+    {
+        $user = Auth::user();
+        return $this->userDashboardData($user);
+    }
+
+    protected function adminDashboardData($user)
     {
         $thirtyDaysAgo = Carbon::now()->subDays(30);
 
@@ -78,7 +84,7 @@ class DashboardController extends Controller
             ]);
         });
 
-        return view('dashboard', compact(
+        return view('admin.dashboard', compact(
             'totalIncome', 'totalExpenses', 'activeLoans', 'loansCount',
             'netBalance', 'incomeExpenseChart', 'expenseCategoryChart',
             'recentTransactions', 'aiInsights', 'groupFund', 'pendingLoanRequests',
@@ -86,7 +92,7 @@ class DashboardController extends Controller
         ));
     }
 
-    protected function userDashboard($user)
+    protected function userDashboardData($user)
     {
         // Credit Union Balance Summary
         $savingsBalance = $user->savings_balance;

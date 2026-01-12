@@ -49,10 +49,21 @@
                 </div>
                 <div class="flex flex-col flex-grow px-4 py-4 overflow-y-auto">
                     <nav class="flex-1 space-y-2">
-                        <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                            <i class="fas fa-tachometer-alt mr-3"></i>
-                            Dashboard
-                        </a>
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                <i class="fas fa-tachometer-alt mr-3"></i>
+                                Admin Dashboard
+                            </a>
+                            <a href="{{ route('admin.users.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('admin.users.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                <i class="fas fa-users mr-3"></i>
+                                User Management
+                            </a>
+                        @else
+                            <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                <i class="fas fa-tachometer-alt mr-3"></i>
+                                Dashboard
+                            </a>
+                        @endif
                         <a href="{{ route('incomes.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('incomes.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                             <i class="fas fa-arrow-down mr-3"></i>
                             Income
@@ -174,10 +185,7 @@
                             <div class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
                                 <div class="py-1">
                                     <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Your Profile</a>
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</button>
-                                    </form>
+                                    <a href="{{ route('logout.get') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</a>
                                 </div>
                             </div>
                         </div>
@@ -189,10 +197,21 @@
             <div id="mobile-sidebar" class="md:hidden hidden fixed inset-0 z-50 bg-black bg-opacity-50">
                 <div class="fixed left-0 top-0 bottom-0 w-64 bg-indigo-700 text-white overflow-y-auto">
                     <div class="pt-2 pb-3 space-y-1">
-                    <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                        <i class="fas fa-tachometer-alt mr-3"></i>
-                        Dashboard
-                    </a>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            Admin Dashboard
+                        </a>
+                        <a href="{{ route('admin.users.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('admin.users.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-users mr-3"></i>
+                            User Management
+                        </a>
+                    @else
+                        <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('dashboard') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            Dashboard
+                        </a>
+                    @endif
                     <a href="{{ route('incomes.index') }}" class="block px-4 py-2 text-base font-medium {{ request()->routeIs('incomes.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
                         <i class="fas fa-arrow-down mr-3"></i>
                         Income

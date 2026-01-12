@@ -12,9 +12,21 @@ Route::get('/', function () {
 Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy.policy');
 Route::view('/terms-of-service', 'legal.terms-of-service')->name('terms.service');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth'])
-    ->name('dashboard');
+// User Dashboard (redirect admins to admin dashboard)
+Route::get('/dashboard', function () {
+    if (auth()->user()->isAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+    return app(DashboardController::class)->userDashboard();
+})->middleware(['auth'])->name('dashboard');
+
+// Admin Dashboard
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
+    
+    // User Management
+    Route::resource('users', \App\Http\Controllers\UserController::class);
+});
 
 Route::middleware('auth')->group(function () {
     // Profile routes
