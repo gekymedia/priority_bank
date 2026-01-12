@@ -137,6 +137,7 @@
                 </div>
                 <p class="text-gray-400 mb-4">Building financial futures through community trust.</p>
                 <p class="text-sm text-gray-500">&copy; {{ date('Y') }} Priority Bank Ghana. All rights reserved.</p>
+                <p class="text-xs text-gray-600 mt-2">Version 1.0.0</p>
             </div>
         </div>
     </footer>
