@@ -404,4 +404,82 @@ class SavingsController extends Controller
         return redirect()->route('savings.index')
             ->with('success', 'Deposit rejected.');
     }
+
+    /**
+     * Process automatic loan repayment from deposit
+     */
+    protected function processAutomaticLoanRepayment(Saving $saving)
+    {
+        $user = $saving->user;
+        $depositAmount = $saving->amount;
+
+        // Get user's outstanding group loans (oldest first)
+        $outstandingLoans = \App\Models\Loan::where('user_id', $user->id)
+            ->where('is_group_loan', true)
+            ->where('status', 'borrowed')
+            ->where('remaining_balance', '>', 0)
+            ->orderBy('date_given', 'asc')
+            ->get();
+
+        if ($outstandingLoans->isEmpty()) {
+            // No outstanding loans, deposit goes to savings
+            return;
+        }
+
+        $remainingDeposit = $depositAmount;
+        $loansRepaid = [];
+
+        foreach ($outstandingLoans as $loan) {
+            if ($remainingDeposit <= 0) {
+                break;
+            }
+
+            $loanBalance = $loan->remaining_balance;
+            $paymentAmount = min($remainingDeposit, $loanBalance);
+
+            // Create payment record
+            $payment = \App\Models\Payment::create([
+                'user_id' => $user->id,
+                'loan_id' => $loan->id,
+                'amount' => $paymentAmount,
+                'payment_method' => 'auto_deduction',
+                'status' => 'completed',
+                'payment_date' => $saving->deposit_date,
+                'notes' => 'Automatic deduction from deposit - ' . ($saving->reference ? 'Ref: ' . $saving->reference : ''),
+            ]);
+
+            // Update loan balance
+            $loan->updateRemainingBalance();
+
+            $remainingDeposit -= $paymentAmount;
+            $loansRepaid[] = [
+                'loan_id' => $loan->id,
+                'amount' => $paymentAmount,
+                'remaining' => $loan->fresh()->remaining_balance
+            ];
+        }
+
+        // If there's remaining deposit after paying all loans, it stays as savings
+        // If deposit was fully used for loan repayment, mark saving as used
+        if ($remainingDeposit < $depositAmount) {
+            if ($remainingDeposit > 0) {
+                // Partial: update saving amount to remaining
+                $saving->update(['amount' => $remainingDeposit]);
+            } else {
+                // Full: mark as used for loan repayment
+                $saving->update([
+                    'status' => 'withdrawn',
+                    'notes' => ($saving->notes ? $saving->notes . ' | ' : '') . 'Used for automatic loan repayment'
+                ]);
+            }
+        }
+
+        \Log::info('Automatic loan repayment processed', [
+            'saving_id' => $saving->id,
+            'user_id' => $user->id,
+            'deposit_amount' => $depositAmount,
+            'loans_repaid' => $loansRepaid,
+            'remaining_deposit' => $remainingDeposit
+        ]);
+    }
 }
