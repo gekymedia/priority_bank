@@ -84,25 +84,27 @@
                             <i class="fas fa-pie-chart mr-3"></i>
                             Budgets
                         </a>
-                        <a href="{{ route('transactions.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                            <i class="fas fa-exchange-alt mr-3"></i>
-                            Transactions
-                        </a>
-                        <a href="{{ route('api-keys.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('api-keys.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                            <i class="fas fa-key mr-3"></i>
-                            API Keys
-                        </a>
-                        <div class="pt-4 mt-4 border-t border-indigo-600">
-                            <p class="px-4 text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-2">Categories</p>
-                            <a href="{{ route('income-categories.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('income-categories.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                                <i class="fas fa-tags mr-3"></i>
-                                Income Categories
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('transactions.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('transactions.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                <i class="fas fa-exchange-alt mr-3"></i>
+                                Transactions
                             </a>
-                            <a href="{{ route('expense-categories.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('expense-categories.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
-                                <i class="fas fa-tags mr-3"></i>
-                                Expense Categories
+                            <a href="{{ route('api-keys.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('api-keys.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                <i class="fas fa-key mr-3"></i>
+                                API Keys
                             </a>
-                        </div>
+                            <div class="pt-4 mt-4 border-t border-indigo-600">
+                                <p class="px-4 text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-2">Categories</p>
+                                <a href="{{ route('income-categories.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('income-categories.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                    <i class="fas fa-tags mr-3"></i>
+                                    Income Categories
+                                </a>
+                                <a href="{{ route('expense-categories.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('expense-categories.*') ? 'bg-indigo-600' : 'hover:bg-indigo-600' }}">
+                                    <i class="fas fa-tags mr-3"></i>
+                                    Expense Categories
+                                </a>
+                            </div>
+                        @endif
                     </nav>
                 </div>
                 <div class="p-4 border-t border-indigo-600">

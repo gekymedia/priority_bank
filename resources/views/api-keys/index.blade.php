@@ -5,7 +5,8 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">API Key Management</h1>
         <button onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+            <i class="fas fa-plus mr-2"></i>
             Create New API Key
         </button>
     </div>
@@ -125,10 +126,16 @@
 </div>
 
 <!-- Create Token Modal -->
-<div id="createTokenModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Create New API Key</h3>
+<div id="createTokenModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Create New API Key</h3>
+                <button onclick="document.getElementById('createTokenModal').classList.add('hidden')" 
+                        class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <form action="{{ route('api-keys.store') }}" method="POST">
                 @csrf
                 <div class="mb-4">
@@ -160,15 +167,15 @@
                            placeholder="https://example.com">
                     <p class="mt-1 text-xs text-gray-500">Webhook URL where Priority Bank will send data back to this system.</p>
                 </div>
-                <div class="flex justify-end gap-3">
+                <div class="flex justify-end gap-3 mt-6">
                     <button type="button" 
                             onclick="document.getElementById('createTokenModal').classList.add('hidden')"
-                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" 
-                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                        Create
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        Create API Key
                     </button>
                 </div>
             </form>
