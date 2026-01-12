@@ -123,6 +123,8 @@
                         @endif
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approval Status</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -145,6 +147,36 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $saving->reference ?? '-' }}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            @if($saving->payment_method === 'direct')
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">Direct Deposit</span>
+                            @elseif($saving->payment_method === 'paystack')
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">Paystack</span>
+                            @elseif($saving->payment_method === 'hubtel')
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">Hubtel</span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">-</span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if($saving->approval_status === 'pending')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                            @elseif($saving->approval_status === 'approved')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Approved
+                                </span>
+                            @elseif($saving->approval_status === 'rejected')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    Rejected
+                                </span>
+                            @else
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    {{ ucfirst($saving->approval_status ?? 'N/A') }}
+                                </span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                 @if($saving->status === 'available') bg-green-100 text-green-800
@@ -160,6 +192,16 @@
                             @can('view', $saving)
                                 <a href="{{ route('savings.show', $saving->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">View</a>
                             @endcan
+                            @if(Auth::user()->isAdmin() && $saving->approval_status === 'pending')
+                                <form action="{{ route('savings.approve', $saving->id) }}" method="POST" class="inline mr-2">
+                                    @csrf
+                                    <button type="submit" class="text-green-600 hover:text-green-900" onclick="return confirm('Approve this deposit?')">Approve</button>
+                                </form>
+                                <form action="{{ route('savings.reject', $saving->id) }}" method="POST" class="inline mr-2">
+                                    @csrf
+                                    <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Reject this deposit?')">Reject</button>
+                                </form>
+                            @endif
                             @can('update', $saving)
                                 <a href="{{ route('savings.edit', $saving->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
                             @endcan
@@ -174,7 +216,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ Auth::user()->isAdmin() ? '7' : '6' }}" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="{{ Auth::user()->isAdmin() ? '9' : '8' }}" class="px-6 py-4 text-center text-gray-500">
                             No savings deposits found.
                             @if(Auth::user()->isAdmin())
                                 <br><a href="{{ route('savings.create') }}" class="text-blue-500 hover:text-blue-700">Add the first savings deposit</a>
@@ -207,7 +249,7 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <form action="{{ route('savings.store') }}" method="POST">
+                <form action="{{ route('savings.store') }}" method="POST" id="depositForm">
                     @csrf
                     <div class="mb-4">
                         <label for="deposit_amount" class="block text-sm font-medium text-gray-700 mb-2">Amount (GHS) *</label>
@@ -230,13 +272,52 @@
                         <textarea name="notes" id="deposit_notes" rows="3"
                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
                     </div>
+                    
+                    <!-- Payment Method Selection -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label>
+                        <div class="space-y-2">
+                            <!-- Direct Deposit Option -->
+                            <label class="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input type="radio" name="payment_method" value="direct" checked class="mt-1 mr-3" required>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">Direct Deposit (Bank/MoMo)</div>
+                                    <div class="text-sm text-gray-500">Send money directly to bank account or MoMo. Admin will verify and approve.</div>
+                                </div>
+                            </label>
+                            
+                            <!-- Online Payment Options -->
+                            @if($isOnlinePaymentAvailable)
+                                @if($activeGateway === 'hubtel' || $activeGateway === 'paystack')
+                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                        <input type="radio" name="payment_method" value="{{ $activeGateway }}" class="mt-1 mr-3" required>
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-900">
+                                                Online Payment ({{ strtoupper($activeGateway) }})
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                Pay instantly using {{ $activeGateway === 'hubtel' ? 'Hubtel wallet or card' : 'card, mobile money, or bank transfer' }}. Instant approval.
+                                            </div>
+                                        </div>
+                                    </label>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm text-blue-800">
+                            <strong>Note:</strong> Direct deposits require admin verification. Online payments are processed immediately.
+                        </p>
+                    </div>
+                    
                     <div class="flex justify-end gap-3">
                         <button type="button" onclick="document.getElementById('depositModal').classList.add('hidden')"
                                 class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
                             Cancel
                         </button>
                         <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                            Deposit
+                            Proceed
                         </button>
                     </div>
                 </form>

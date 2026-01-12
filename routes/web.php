@@ -67,6 +67,13 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Credit Union routes
     Route::resource('savings', \App\Http\Controllers\SavingsController::class);
     Route::post('savings/withdraw', [\App\Http\Controllers\SavingsController::class, 'withdraw'])->name('savings.withdraw');
+    Route::get('savings/callback/{gateway}', [\App\Http\Controllers\SavingsController::class, 'callback'])->name('savings.callback');
+    
+    // Admin approval routes for savings deposits
+    Route::middleware('admin')->group(function () {
+        Route::post('savings/{saving}/approve', [\App\Http\Controllers\SavingsController::class, 'approve'])->name('savings.approve');
+        Route::post('savings/{saving}/reject', [\App\Http\Controllers\SavingsController::class, 'reject'])->name('savings.reject');
+    });
     Route::resource('loan-requests', \App\Http\Controllers\LoanRequestsController::class);
     Route::post('loan-requests/{loan_request}/approve', [\App\Http\Controllers\LoanRequestsController::class, 'approve'])->name('loan-requests.approve');
     Route::post('loan-requests/{loan_request}/reject', [\App\Http\Controllers\LoanRequestsController::class, 'reject'])->name('loan-requests.reject');

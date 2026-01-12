@@ -41,7 +41,14 @@ return [
     'hubtel' => [
         'client_id' => env('HUBTEL_CLIENT_ID'),
         'client_secret' => env('HUBTEL_CLIENT_SECRET'),
+        'api_key' => env('HUBTEL_API_KEY'),
+        'api_secret' => env('HUBTEL_API_SECRET'),
         'from' => env('HUBTEL_FROM', 'PriorityBank'),
+    ],
+
+    'paystack' => [
+        'public_key' => env('PAYSTACK_PUBLIC_KEY'),
+        'secret_key' => env('PAYSTACK_SECRET_KEY'),
     ],
 
     'gekychat' => [

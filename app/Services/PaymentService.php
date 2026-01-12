@@ -16,8 +16,33 @@ class PaymentService
     public function __construct()
     {
         $this->paystackSecretKey = config('services.paystack.secret_key');
-        $this->hubtelApiKey = config('services.hubtel.api_key');
-        $this->hubtelApiSecret = config('services.hubtel.api_secret');
+        $this->hubtelApiKey = config('services.hubtel.api_key') ?? config('services.hubtel.client_id');
+        $this->hubtelApiSecret = config('services.hubtel.api_secret') ?? config('services.hubtel.client_secret');
+    }
+
+    /**
+     * Determine which payment gateway to use (Hubtel takes precedence)
+     */
+    public function getActiveGateway(): ?string
+    {
+        // Hubtel takes precedence if both are configured
+        if (!empty($this->hubtelApiKey) && !empty($this->hubtelApiSecret)) {
+            return 'hubtel';
+        }
+        
+        if (!empty($this->paystackSecretKey)) {
+            return 'paystack';
+        }
+        
+        return null;
+    }
+
+    /**
+     * Check if online payment is available
+     */
+    public function isOnlinePaymentAvailable(): bool
+    {
+        return $this->getActiveGateway() !== null;
     }
 
     /**
@@ -37,8 +62,9 @@ class PaymentService
                 'callback_url' => $data['callback_url'],
                 'metadata' => [
                     'loan_id' => $data['loan_id'] ?? null,
+                    'saving_id' => $data['saving_id'] ?? null,
                     'user_id' => $data['user_id'],
-                    'payment_type' => 'loan_repayment'
+                    'payment_type' => $data['payment_type'] ?? 'loan_repayment'
                 ]
             ]);
 
@@ -109,6 +135,10 @@ class PaymentService
         try {
             $auth = base64_encode($this->hubtelApiKey . ':' . $this->hubtelApiSecret);
 
+            $paymentType = $data['payment_type'] ?? 'loan_repayment';
+            $itemName = $paymentType === 'savings_deposit' ? 'Savings Deposit' : 'Loan Repayment';
+            $description = $paymentType === 'savings_deposit' ? 'Credit Union Savings Deposit' : 'Credit Union Loan Repayment';
+
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . $auth,
                 'Content-Type' => 'application/json',
@@ -116,15 +146,15 @@ class PaymentService
                 'invoice' => [
                     'items' => [
                         [
-                            'name' => 'Loan Repayment',
+                            'name' => $itemName,
                             'quantity' => 1,
                             'unitPrice' => $data['amount'],
                             'totalPrice' => $data['amount'],
-                            'description' => 'Loan repayment for ' . ($data['loan_id'] ? 'Loan #' . $data['loan_id'] : 'Credit Union')
+                            'description' => $description
                         ]
                     ],
                     'totalAmount' => $data['amount'],
-                    'description' => 'Credit Union Loan Repayment',
+                    'description' => $description,
                     'customerName' => $data['customer_name'] ?? 'Customer',
                     'customerMsisdn' => $data['phone'] ?? '',
                     'customerEmail' => $data['email'],
@@ -230,6 +260,42 @@ class PaymentService
 
             $payment->update(['status' => 'failed']);
             return ['success' => false, 'message' => 'Payment processing failed'];
+        }
+    }
+
+    /**
+     * Process savings deposit payment
+     */
+    public function processSavingsDeposit(\App\Models\Saving $saving, array $gatewayResponse)
+    {
+        try {
+            // Update saving with gateway response
+            $saving->update([
+                'approval_status' => 'approved',
+                'status' => 'available',
+                'transaction_reference' => $gatewayResponse['reference'] ?? $gatewayResponse['transaction_id'] ?? null,
+            ]);
+
+            // Update group funds
+            $groupFund = \App\Models\GroupFund::getInstance();
+            $groupFund->updateTotals();
+
+            Log::info('Savings deposit processed successfully', [
+                'saving_id' => $saving->id,
+                'user_id' => $saving->user_id,
+                'amount' => $saving->amount
+            ]);
+
+            return ['success' => true, 'message' => 'Deposit processed successfully'];
+
+        } catch (\Exception $e) {
+            Log::error('Savings deposit processing error', [
+                'saving_id' => $saving->id,
+                'error' => $e->getMessage()
+            ]);
+
+            $saving->update(['approval_status' => 'rejected']);
+            return ['success' => false, 'message' => 'Deposit processing failed'];
         }
     }
 

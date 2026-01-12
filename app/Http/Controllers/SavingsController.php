@@ -4,12 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Saving;
 use App\Models\GroupFund;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class SavingsController extends Controller
 {
-    // Middleware is applied in routes
+    protected $paymentService;
+
+    public function __construct(PaymentService $paymentService)
+    {
+        $this->paymentService = $paymentService;
+    }
 
     /**
      * Display a listing of the resource.
@@ -24,7 +30,11 @@ class SavingsController extends Controller
             $savings = Saving::where('user_id', $user->id)->latest()->paginate(20);
         }
 
-        return view('savings.index', compact('savings'));
+        // Get payment gateway info for normal users
+        $activeGateway = $this->paymentService->getActiveGateway();
+        $isOnlinePaymentAvailable = $this->paymentService->isOnlinePaymentAvailable();
+
+        return view('savings.index', compact('savings', 'activeGateway', 'isOnlinePaymentAvailable'));
     }
 
     /**
@@ -45,23 +55,85 @@ class SavingsController extends Controller
             'deposit_date' => 'required|date|before_or_equal:today',
             'reference' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
+            'payment_method' => 'required|in:direct,paystack,hubtel',
         ]);
 
+        $user = Auth::user();
+        $paymentMethod = $request->payment_method;
+
+        // Direct deposit (bank momo/cash) - requires admin approval
+        if ($paymentMethod === 'direct') {
+            $saving = Saving::create([
+                'user_id' => $user->id,
+                'amount' => $request->amount,
+                'deposit_date' => $request->deposit_date,
+                'reference' => $request->reference,
+                'notes' => $request->notes,
+                'payment_method' => 'direct',
+                'approval_status' => 'pending',
+                'status' => 'locked', // Locked until approved
+            ]);
+
+            return redirect()->route('savings.index')
+                ->with('success', 'Deposit submitted for admin approval. Your deposit will be processed once verified.');
+        }
+
+        // Online payment (Paystack or Hubtel)
+        $activeGateway = $this->paymentService->getActiveGateway();
+        
+        if (!$activeGateway) {
+            return back()->withErrors(['payment' => 'Online payment is currently unavailable. Please use direct deposit.']);
+        }
+
+        // Use the active gateway (Hubtel takes precedence)
+        $gateway = ($activeGateway === 'hubtel' && $paymentMethod === 'hubtel') ? 'hubtel' : 
+                   (($activeGateway === 'paystack' && $paymentMethod === 'paystack') ? 'paystack' : $activeGateway);
+
+        $reference = $this->paymentService->generateReference();
+
+        // Create saving record with pending status
         $saving = Saving::create([
-            'user_id' => Auth::id(),
+            'user_id' => $user->id,
             'amount' => $request->amount,
             'deposit_date' => $request->deposit_date,
             'reference' => $request->reference,
             'notes' => $request->notes,
-            'status' => 'available',
+            'payment_method' => $gateway,
+            'approval_status' => 'pending',
+            'status' => 'locked',
+            'transaction_reference' => $reference,
         ]);
 
-        // Update group funds
-        $groupFund = GroupFund::getInstance();
-        $groupFund->updateTotals();
+        // Initialize payment
+        $paymentData = [
+            'email' => $user->email,
+            'amount' => $request->amount,
+            'reference' => $reference,
+            'callback_url' => route('savings.callback', ['gateway' => $gateway]),
+            'customer_name' => $user->name,
+            'phone' => $user->phone ?? '',
+            'user_id' => $user->id,
+            'saving_id' => $saving->id,
+            'payment_type' => 'savings_deposit'
+        ];
 
-        return redirect()->route('savings.index')
-            ->with('success', 'Savings deposit recorded successfully!');
+        if ($gateway === 'paystack') {
+            $result = $this->paymentService->initializePaystackPayment($paymentData);
+        } else {
+            $result = $this->paymentService->initializeHubtelPayment($paymentData);
+        }
+
+        if (isset($result['error'])) {
+            $saving->update(['approval_status' => 'rejected']);
+            return back()->withErrors(['payment' => $result['error']]);
+        }
+
+        // Redirect to payment gateway
+        $redirectUrl = $gateway === 'paystack' 
+            ? $result['data']['authorization_url'] 
+            : $result['data']['checkoutUrl'] ?? $result['checkoutUrl'];
+
+        return redirect($redirectUrl);
     }
 
     /**
@@ -226,5 +298,97 @@ class SavingsController extends Controller
 
         return redirect()->route('savings.index')
             ->with('success', 'Savings deleted successfully!');
+    }
+
+    /**
+     * Handle payment gateway callback for savings deposits
+     */
+    public function callback(Request $request, string $gateway)
+    {
+        $reference = $request->query('reference') ?? $request->query('token');
+
+        if (!$reference) {
+            return redirect()->route('savings.index')->withErrors(['payment' => 'Invalid payment reference']);
+        }
+
+        // Find saving by reference
+        $saving = Saving::where('transaction_reference', $reference)->first();
+
+        if (!$saving) {
+            return redirect()->route('savings.index')->withErrors(['payment' => 'Deposit not found']);
+        }
+
+        // Verify payment with gateway
+        if ($gateway === 'paystack') {
+            $result = $this->paymentService->verifyPaystackPayment($reference);
+        } elseif ($gateway === 'hubtel') {
+            $result = $this->paymentService->verifyHubtelPayment($reference);
+        } else {
+            return redirect()->route('savings.index')->withErrors(['payment' => 'Invalid payment gateway']);
+        }
+
+        if ($result['success']) {
+            // Process successful payment
+            $processResult = $this->paymentService->processSavingsDeposit($saving, $result);
+
+            if ($processResult['success']) {
+                return redirect()->route('savings.index')
+                    ->with('success', 'Deposit completed successfully!');
+            } else {
+                return redirect()->route('savings.index')
+                    ->withErrors(['payment' => $processResult['message']]);
+            }
+        } else {
+            $saving->update(['approval_status' => 'rejected']);
+            return redirect()->route('savings.index')
+                ->withErrors(['payment' => $result['message'] ?? 'Payment verification failed']);
+        }
+    }
+
+    /**
+     * Approve a pending direct deposit (Admin only)
+     */
+    public function approve(Saving $saving)
+    {
+        if (!Auth::user()->isAdmin()) {
+            abort(403);
+        }
+
+        if ($saving->approval_status !== 'pending') {
+            return back()->withErrors(['approval' => 'This deposit is not pending approval.']);
+        }
+
+        $saving->update([
+            'approval_status' => 'approved',
+            'status' => 'available',
+        ]);
+
+        // Update group funds
+        $groupFund = GroupFund::getInstance();
+        $groupFund->updateTotals();
+
+        return redirect()->route('savings.index')
+            ->with('success', 'Deposit approved successfully!');
+    }
+
+    /**
+     * Reject a pending direct deposit (Admin only)
+     */
+    public function reject(Saving $saving)
+    {
+        if (!Auth::user()->isAdmin()) {
+            abort(403);
+        }
+
+        if ($saving->approval_status !== 'pending') {
+            return back()->withErrors(['approval' => 'This deposit is not pending approval.']);
+        }
+
+        $saving->update([
+            'approval_status' => 'rejected',
+        ]);
+
+        return redirect()->route('savings.index')
+            ->with('success', 'Deposit rejected.');
     }
 }

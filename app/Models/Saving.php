@@ -21,6 +21,9 @@ class Saving extends Model
         'reference',
         'status',
         'notes',
+        'payment_method',
+        'approval_status',
+        'transaction_reference',
     ];
 
     /**
