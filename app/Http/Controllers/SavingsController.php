@@ -9,10 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class SavingsController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
+    // Middleware is applied in routes
 
     /**
      * Display a listing of the resource.
@@ -46,6 +43,7 @@ class SavingsController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:1',
             'deposit_date' => 'required|date|before_or_equal:today',
+            'reference' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
         ]);
 
@@ -53,6 +51,7 @@ class SavingsController extends Controller
             'user_id' => Auth::id(),
             'amount' => $request->amount,
             'deposit_date' => $request->deposit_date,
+            'reference' => $request->reference,
             'notes' => $request->notes,
             'status' => 'available',
         ]);
@@ -63,6 +62,111 @@ class SavingsController extends Controller
 
         return redirect()->route('savings.index')
             ->with('success', 'Savings deposit recorded successfully!');
+    }
+
+    /**
+     * Withdraw money from savings.
+     */
+    public function withdraw(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'withdraw_date' => 'required|date|before_or_equal:today',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $currentBalance = $user->savings_balance;
+        $withdrawAmount = $request->amount;
+
+        // Check if user has sufficient balance
+        if ($currentBalance < $withdrawAmount) {
+            // Create loan overdraft
+            $overdraftAmount = $withdrawAmount - $currentBalance;
+            
+            // Withdraw available balance first
+            if ($currentBalance > 0) {
+                $this->processWithdrawal($user, $currentBalance, $request->withdraw_date, $request->reference, $request->notes);
+            }
+            
+            // Create overdraft loan
+            $loan = \App\Models\Loan::create([
+                'user_id' => $user->id,
+                'borrower_name' => $user->name,
+                'amount' => $overdraftAmount,
+                'date_given' => $request->withdraw_date,
+                'status' => 'borrowed',
+                'returned_amount' => 0,
+                'remaining_balance' => $overdraftAmount,
+                'is_group_loan' => true,
+                'notes' => 'Loan Overdraft - ' . ($request->notes ?? 'Withdrawal exceeded available balance'),
+            ]);
+
+            // Update group funds
+            $groupFund = GroupFund::getInstance();
+            $groupFund->updateTotals();
+
+            return redirect()->route('savings.index')
+                ->with('warning', "Withdrawal processed. Available balance (GHS " . number_format($currentBalance, 2) . ") withdrawn. Remaining amount (GHS " . number_format($overdraftAmount, 2) . ") created as Loan Overdraft.");
+        }
+
+        // Normal withdrawal
+        $this->processWithdrawal($user, $withdrawAmount, $request->withdraw_date, $request->reference, $request->notes);
+
+        // Update group funds
+        $groupFund = GroupFund::getInstance();
+        $groupFund->updateTotals();
+
+        return redirect()->route('savings.index')
+            ->with('success', 'Withdrawal processed successfully!');
+    }
+
+    /**
+     * Process withdrawal by marking savings as withdrawn.
+     */
+    protected function processWithdrawal($user, $amount, $date, $reference, $notes)
+    {
+        // Get available savings in order (oldest first)
+        $availableSavings = Saving::where('user_id', $user->id)
+            ->where('status', 'available')
+            ->orderBy('deposit_date', 'asc')
+            ->get();
+
+        $remainingAmount = $amount;
+
+        foreach ($availableSavings as $saving) {
+            if ($remainingAmount <= 0) {
+                break;
+            }
+
+            if ($saving->amount <= $remainingAmount) {
+                // Mark entire saving as withdrawn
+                $saving->update([
+                    'status' => 'withdrawn',
+                    'notes' => ($saving->notes ? $saving->notes . ' | ' : '') . 'Withdrawn: ' . ($notes ?? '') . ($reference ? ' (Ref: ' . $reference . ')' : ''),
+                ]);
+                $remainingAmount -= $saving->amount;
+            } else {
+                // Partial withdrawal - create new saving record for remaining amount
+                $remainingSaving = $saving->amount - $remainingAmount;
+                
+                Saving::create([
+                    'user_id' => $user->id,
+                    'amount' => $remainingSaving,
+                    'deposit_date' => $saving->deposit_date,
+                    'status' => 'available',
+                    'notes' => $saving->notes,
+                ]);
+
+                $saving->update([
+                    'amount' => $remainingAmount,
+                    'status' => 'withdrawn',
+                    'notes' => ($saving->notes ? $saving->notes . ' | ' : '') . 'Withdrawn: ' . ($notes ?? '') . ($reference ? ' (Ref: ' . $reference . ')' : ''),
+                ]);
+                $remainingAmount = 0;
+            }
+        }
     }
 
     /**

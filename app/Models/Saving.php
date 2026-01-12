@@ -18,6 +18,7 @@ class Saving extends Model
         'user_id',
         'amount',
         'deposit_date',
+        'reference',
         'status',
         'notes',
     ];

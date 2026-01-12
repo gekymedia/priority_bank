@@ -45,6 +45,20 @@
                     @enderror
                 </div>
 
+                <!-- Reference -->
+                <div class="mb-4">
+                    <label for="reference" class="block text-sm font-medium text-gray-700 mb-2">
+                        Reference (Optional)
+                    </label>
+                    <input type="text" id="reference" name="reference" value="{{ old('reference') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 @error('reference') border-red-500 @enderror"
+                           placeholder="e.g., Transaction ID, Receipt Number">
+                    @error('reference')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    <p class="mt-1 text-xs text-gray-500">Transaction reference or receipt number for tracking</p>
+                </div>
+
                 <!-- Notes -->
                 <div class="mb-6">
                     <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">

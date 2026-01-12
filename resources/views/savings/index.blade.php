@@ -7,11 +7,26 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold">Savings</h1>
-            <p class="text-gray-600 mt-1">Manage your savings deposits available for lending</p>
+            <p class="text-gray-600 mt-1">Manage your savings deposits and withdrawals</p>
         </div>
-        <a href="{{ route('savings.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">
-            Add New Savings
-        </a>
+        @if(!Auth::user()->isAdmin())
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('depositModal').classList.remove('hidden')" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    Deposit Money
+                </button>
+                <button onclick="document.getElementById('withdrawModal').classList.remove('hidden')" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                    <i class="fas fa-minus mr-2"></i>
+                    Withdraw Money
+                </button>
+            </div>
+        @else
+            <a href="{{ route('savings.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">
+                Add New Savings
+            </a>
+        @endif
     </div>
 
     <!-- Savings Summary -->
@@ -107,6 +122,7 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
                         @endif
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -123,8 +139,11 @@
                             {{ $saving->user->name }}
                         </td>
                         @endif
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
-                            GHS {{ number_format($saving->amount, 2) }}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm {{ $saving->status === 'withdrawn' ? 'text-red-600' : 'text-green-600' }} font-medium">
+                            {{ $saving->status === 'withdrawn' ? '-' : '+' }}GHS {{ number_format($saving->amount, 2) }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ $saving->reference ?? '-' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -155,7 +174,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ Auth::user()->isAdmin() ? '6' : '5' }}" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="{{ Auth::user()->isAdmin() ? '7' : '6' }}" class="px-6 py-4 text-center text-gray-500">
                             No savings deposits found.
                             @if(Auth::user()->isAdmin())
                                 <br><a href="{{ route('savings.create') }}" class="text-blue-500 hover:text-blue-700">Add the first savings deposit</a>
@@ -175,6 +194,126 @@
         </div>
         @endif
     </div>
+
+    @if(!Auth::user()->isAdmin())
+    <!-- Deposit Modal -->
+    <div id="depositModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Deposit Money</h3>
+                    <button onclick="document.getElementById('depositModal').classList.add('hidden')" 
+                            class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form action="{{ route('savings.store') }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="deposit_amount" class="block text-sm font-medium text-gray-700 mb-2">Amount (GHS) *</label>
+                        <input type="number" name="amount" id="deposit_amount" step="0.01" min="0.01" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    <div class="mb-4">
+                        <label for="deposit_reference" class="block text-sm font-medium text-gray-700 mb-2">Reference (Optional)</label>
+                        <input type="text" name="reference" id="deposit_reference" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                               placeholder="Transaction ID, Receipt Number">
+                    </div>
+                    <div class="mb-4">
+                        <label for="deposit_date" class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                        <input type="date" name="deposit_date" id="deposit_date" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    <div class="mb-4">
+                        <label for="deposit_notes" class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <textarea name="notes" id="deposit_notes" rows="3"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('depositModal').classList.add('hidden')"
+                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            Deposit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div id="withdrawModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Withdraw Money</h3>
+                    <button onclick="document.getElementById('withdrawModal').classList.add('hidden')" 
+                            class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Available Balance:</p>
+                    <p class="text-2xl font-bold text-blue-600">GHS {{ number_format(Auth::user()->savings_balance, 2) }}</p>
+                </div>
+                <form action="{{ route('savings.withdraw') }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="withdraw_amount" class="block text-sm font-medium text-gray-700 mb-2">Amount (GHS) *</label>
+                        <input type="number" name="amount" id="withdraw_amount" step="0.01" min="0.01" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="mt-1 text-xs text-gray-500" id="overdraft-warning" style="display: none;">
+                            <span class="text-red-600 font-semibold">⚠️ Insufficient balance. Excess will be created as Loan Overdraft.</span>
+                        </p>
+                    </div>
+                    <div class="mb-4">
+                        <label for="withdraw_reference" class="block text-sm font-medium text-gray-700 mb-2">Reference (Optional)</label>
+                        <input type="text" name="reference" id="withdraw_reference" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Transaction ID, Receipt Number">
+                    </div>
+                    <div class="mb-4">
+                        <label for="withdraw_date" class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                        <input type="date" name="withdraw_date" id="withdraw_date" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="mb-4">
+                        <label for="withdraw_notes" class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <textarea name="notes" id="withdraw_notes" rows="3"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('withdrawModal').classList.add('hidden')"
+                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Withdraw
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Show overdraft warning if withdrawal amount exceeds balance
+        document.getElementById('withdraw_amount')?.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            const balance = {{ Auth::user()->savings_balance }};
+            const warning = document.getElementById('overdraft-warning');
+            
+            if (amount > balance) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        });
+    </script>
+    @endif
 </div>
 @endsection
 
