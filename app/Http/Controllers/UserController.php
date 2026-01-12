@@ -36,6 +36,11 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
+        // Filter by status
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
         $users = $query->latest()->paginate(15);
 
         return view('admin.users.index', compact('users'));
@@ -70,6 +75,7 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'preferred_currency' => $validated['preferred_currency'] ?? 'GHS',
+            'status' => 'approved', // Admin-created users are auto-approved
         ]);
 
         return redirect()->route('admin.users.index')
@@ -137,5 +143,29 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Approve a pending user.
+     */
+    public function approve(User $user)
+    {
+        $user->status = 'approved';
+        $user->save();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User approved successfully.');
+    }
+
+    /**
+     * Reject a pending user.
+     */
+    public function reject(User $user)
+    {
+        $user->status = 'rejected';
+        $user->save();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'User rejected successfully.');
     }
 }

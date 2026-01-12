@@ -4,21 +4,28 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
+// Redirect root to login (private bank group - no welcome page)
 Route::get('/', function () {
-    return view('welcome');
+    if (auth()->check()) {
+        if (auth()->user()->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 // Legal Pages
 Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy.policy');
 Route::view('/terms-of-service', 'legal.terms-of-service')->name('terms.service');
 
-// User Dashboard (redirect admins to admin dashboard)
+// User Dashboard (redirect admins to admin dashboard, check approval)
 Route::get('/dashboard', function () {
     if (auth()->user()->isAdmin()) {
         return redirect()->route('admin.dashboard');
     }
     return app(DashboardController::class)->userDashboard();
-})->middleware(['auth'])->name('dashboard');
+})->middleware(['auth', 'approved'])->name('dashboard');
 
 // Admin Dashboard
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -26,9 +33,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // User Management
     Route::resource('users', \App\Http\Controllers\UserController::class);
+    Route::post('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
+    Route::post('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'approved'])->group(function () {
     // Profile routes
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');

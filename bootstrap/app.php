@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'openai.errors' => \App\Http\Middleware\HandleOpenAIErrors::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'approved' => \App\Http\Middleware\CheckUserApproved::class,
         ]);
         
         // Or append global middleware

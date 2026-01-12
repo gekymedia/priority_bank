@@ -4,10 +4,18 @@
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-8">
         <h1 class="text-3xl font-bold">Admin Financial Dashboard</h1>
-        <a href="{{ route('admin.users.index') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center">
-            <i class="fas fa-users mr-2"></i>
-            Manage Users
-        </a>
+        <div class="flex gap-3">
+            @if($pendingUsersCount > 0)
+                <a href="{{ route('admin.users.index', ['status' => 'pending']) }}" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center">
+                    <i class="fas fa-user-clock mr-2"></i>
+                    Pending Users ({{ $pendingUsersCount }})
+                </a>
+            @endif
+            <a href="{{ route('admin.users.index') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center">
+                <i class="fas fa-users mr-2"></i>
+                Manage Users
+            </a>
+        </div>
     </div>
 
     @if($errors->has('ai_error'))

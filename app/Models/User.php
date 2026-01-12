@@ -39,6 +39,7 @@ class User extends Authenticatable
         'notification_browser',
         'theme',
         'role',
+        'status',
     ];
 
     /**
@@ -215,6 +216,22 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is approved.
+     */
+    public function isApproved()
+    {
+        return $this->status === 'approved';
+    }
+
+    /**
+     * Check if user is pending.
+     */
+    public function isPending()
+    {
+        return $this->status === 'pending';
     }
 
     /**

@@ -40,6 +40,9 @@ class DashboardController extends Controller
 
     protected function adminDashboardData($user)
     {
+        // Get pending users count
+        $pendingUsersCount = \App\Models\User::where('status', 'pending')->count();
+        
         $thirtyDaysAgo = Carbon::now()->subDays(30);
 
         // Financial Summary
@@ -88,7 +91,7 @@ class DashboardController extends Controller
             'totalIncome', 'totalExpenses', 'activeLoans', 'loansCount',
             'netBalance', 'incomeExpenseChart', 'expenseCategoryChart',
             'recentTransactions', 'aiInsights', 'groupFund', 'pendingLoanRequests',
-            'totalCreditUnionLoans'
+            'totalCreditUnionLoans', 'pendingUsersCount'
         ));
     }
 

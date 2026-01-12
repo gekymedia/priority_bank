@@ -37,6 +37,14 @@
                     <option value="user" {{ request('role') === 'user' ? 'selected' : '' }}>User</option>
                 </select>
             </div>
+            <div class="min-w-[150px]">
+                <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="">All Status</option>
+                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
+                    <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                </select>
+            </div>
             <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
                 <i class="fas fa-search mr-2"></i>Search
             </button>
@@ -58,6 +66,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -90,11 +99,45 @@
                                 {{ ucfirst($user->role) }}
                             </span>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if($user->status === 'pending')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                            @elseif($user->status === 'approved')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Approved
+                                </span>
+                            @elseif($user->status === 'rejected')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    Rejected
+                                </span>
+                            @else
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    {{ ucfirst($user->status ?? 'N/A') }}
+                                </span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $user->created_at->format('M d, Y') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end space-x-2">
+                                @if($user->status === 'pending')
+                                    <form action="{{ route('admin.users.approve', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-green-600 hover:text-green-900" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    <form action="{{ route('admin.users.reject', $user) }}" method="POST" class="inline" 
+                                          onsubmit="return confirm('Are you sure you want to reject this user?');">
+                                        @csrf
+                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Reject">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                @endif
                                 <a href="{{ route('admin.users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="View">
                                     <i class="fas fa-eye"></i>
                                 </a>
@@ -116,7 +159,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
                             No users found.
                         </td>
                     </tr>
