@@ -6,6 +6,9 @@ use App\Models\Loan;
 use App\Models\Income;
 use App\Models\Expense;
 use App\Models\Account;
+use App\Models\User;
+use App\Models\InterestRate;
+use App\Models\GroupFund;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,45 +16,116 @@ class LoanController extends Controller
 {
     public function index()
     {
-        $loans = Loan::where('user_id', Auth::id())->with('account')->latest()->paginate(10);
+        $user = Auth::user();
+        
+        if ($user->isAdmin()) {
+            // Admins see all group loans
+            $loans = Loan::where('is_group_loan', true)
+                ->with(['user', 'account'])
+                ->latest()
+                ->paginate(20);
+        } else {
+            // Normal users see only their loans
+            $loans = Loan::where('user_id', $user->id)
+                ->where('is_group_loan', true)
+                ->with('account')
+                ->latest()
+                ->paginate(20);
+        }
+        
         return view('loans.index', compact('loans'));
     }
 
     public function create()
     {
-        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $user = Auth::user();
+        $interestRates = InterestRate::active()->forLoans()->get();
+        $groupFund = GroupFund::getInstance();
+        
+        if ($user->isAdmin()) {
+            // Admin can create loans for any user
+            $users = User::where('status', 'approved')
+                ->where('role', 'user')
+                ->orderBy('name')
+                ->pluck('name', 'id');
+            $accounts = Account::pluck('name', 'id');
+        } else {
+            // Normal users can only create loans for themselves (but they should use loan-requests)
+            $users = collect([$user->id => $user->name]);
+            $accounts = Account::where('user_id', $user->id)->pluck('name', 'id');
+        }
+        
         $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
-        return view('loans.create', compact('accounts', 'channels'));
+        
+        return view('loans.create', compact('accounts', 'channels', 'users', 'interestRates', 'groupFund'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'borrower_name' => 'required|string|max:255',
-            'borrower_phone' => 'nullable|string|max:255',
-            'amount' => 'required|numeric|min:0',
+        $user = Auth::user();
+        
+        $validationRules = [
+            'amount' => 'required|numeric|min:1',
             'date_given' => 'required|date',
-            'expected_return_date' => 'nullable|date|after_or_equal:date_given',
-            'channel' => 'required|in:bank,momo,cash,other',
-            'account_id' => 'required|exists:accounts,id',
-            'notes' => 'nullable|string',
-        ]);
-
+            'expected_return_date' => 'required|date|after_or_equal:date_given',
+            'interest_rate_id' => 'required|exists:interest_rates,id',
+            'notes' => 'nullable|string|max:500',
+        ];
+        
+        if ($user->isAdmin()) {
+            // Admin must select a user
+            $validationRules['user_id'] = 'required|exists:users,id';
+        }
+        
+        $request->validate($validationRules);
+        
+        // Get the target user (admin selects, or current user for normal users)
+        $targetUserId = $user->isAdmin() ? $request->user_id : $user->id;
+        $targetUser = User::findOrFail($targetUserId);
+        
+        // Check if sufficient funds are available (for group loans)
+        $groupFund = GroupFund::getInstance();
+        if ($request->amount > $groupFund->available_for_loans) {
+            return back()->withErrors(['amount' => 'Insufficient group funds available for this loan amount.'])
+                        ->withInput();
+        }
+        
+        // Get interest rate
+        $interestRate = InterestRate::findOrFail($request->interest_rate_id);
+        
+        // Calculate total with interest (assuming 30 days for calculation)
+        $daysUntilReturn = now()->diffInDays($request->expected_return_date);
+        $interestAmount = $interestRate->calculateInterest($request->amount, max(30, $daysUntilReturn));
+        $totalWithInterest = $request->amount + $interestAmount;
+        
+        // Create the loan (automatically approved and disbursed)
         Loan::create([
-            'user_id' => Auth::id(),
-            'borrower_name' => $request->borrower_name,
-            'borrower_phone' => $request->borrower_phone,
+            'user_id' => $targetUserId,
+            'borrower_name' => $targetUser->name,
+            'borrower_phone' => $targetUser->phone,
             'amount' => $request->amount,
             'date_given' => $request->date_given,
+            'disbursement_date' => $request->date_given, // Money is assumed sent
             'expected_return_date' => $request->expected_return_date,
-            'status' => 'borrowed',
+            'status' => 'borrowed', // Automatically approved and disbursed
             'returned_amount' => 0,
-            'channel' => $request->channel,
-            'account_id' => $request->account_id,
-            'notes' => $request->notes,
+            'remaining_balance' => $totalWithInterest,
+            'interest_rate_id' => $interestRate->id,
+            'interest_rate_applied' => $interestRate->rate_percentage,
+            'total_amount_with_interest' => $totalWithInterest,
+            'loan_type' => 'personal',
+            'is_group_loan' => true,
+            'notes' => $request->notes ?? ($user->isAdmin() ? 'Loan created and approved by admin' : 'Loan created'),
         ]);
-
-        return redirect()->route('loans.index')->with('success', 'Loan recorded successfully.');
+        
+        // Update group funds
+        $groupFund->updateTotals();
+        
+        $message = $user->isAdmin() 
+            ? "Loan created and approved for {$targetUser->name}. Money is assumed to have been sent."
+            : 'Loan recorded successfully.';
+        
+        return redirect()->route('loans.index')->with('success', $message);
     }
 
     public function edit(Loan $loan)

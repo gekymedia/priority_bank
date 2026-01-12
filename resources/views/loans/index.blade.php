@@ -3,10 +3,19 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Loan Records</h1>
-        <a href="{{ route('loans.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-            Add New Loan
-        </a>
+        <div>
+            <h1 class="text-2xl font-bold">{{ Auth::user()->isAdmin() ? 'All Group Loans' : 'My Loans' }}</h1>
+            <p class="text-gray-600 mt-1">{{ Auth::user()->isAdmin() ? 'Manage all group loans' : 'View your loan history' }}</p>
+        </div>
+        @if(Auth::user()->isAdmin())
+            <a href="{{ route('loans.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                Create New Loan
+            </a>
+        @else
+            <a href="{{ route('loan-requests.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                Request New Loan
+            </a>
+        @endif
     </div>
 
     @if(session('success'))
@@ -19,20 +28,36 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
+                    @if(Auth::user()->isAdmin())
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                    @endif
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total with Interest</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining Balance</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Given On</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disbursed On</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Returned</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach($loans as $loan)
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ $loan->borrower_name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">GHS {{ number_format($loan->amount, 2) }}</td>
+                    @if(Auth::user()->isAdmin())
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ $loan->user->name ?? $loan->borrower_name }}</div>
+                            <div class="text-sm text-gray-500">{{ $loan->user->email ?? '' }}</div>
+                        </td>
+                    @endif
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        GHS {{ number_format($loan->amount, 2) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        GHS {{ number_format($loan->total_amount_with_interest ?? $loan->amount, 2) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ ($loan->remaining_balance ?? 0) > 0 ? 'text-red-600' : 'text-green-600' }}">
+                        GHS {{ number_format($loan->remaining_balance ?? 0, 2) }}
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         @php
                             $statusClasses = [
@@ -45,9 +70,12 @@
                             {{ ucfirst($loan->status) }}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ optional($loan->date_given)->format('M d, Y') }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ optional($loan->expected_return_date)->format('M d, Y') ?? '-' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">GHS {{ number_format($loan->returned_amount, 2) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ optional($loan->disbursement_date ?? $loan->date_given)->format('M d, Y') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ optional($loan->expected_return_date)->format('M d, Y') ?? '-' }}
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap space-x-2">
                         <a href="{{ route('loans.edit', $loan->id) }}" class="text-blue-500 hover:text-blue-700">Edit</a>
                         <form action="{{ route('loans.destroy', $loan->id) }}" method="POST" class="inline">
