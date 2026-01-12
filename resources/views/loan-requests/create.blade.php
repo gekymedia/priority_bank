@@ -36,7 +36,7 @@
                 <!-- Expected Payback Date -->
                 <div class="mb-4">
                     <label for="expected_payback_date" class="block text-sm font-medium text-gray-700 mb-2">
-                        Expected Payback Date *
+                        When do you expect to pay back? *
                     </label>
                     <input type="date" id="expected_payback_date" name="expected_payback_date" value="{{ old('expected_payback_date') }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('expected_payback_date') border-red-500 @enderror"
@@ -46,32 +46,14 @@
                     @enderror
                 </div>
 
-                <!-- Interest Rate Preview -->
-                @if($interestRates->count() > 0)
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Available Interest Rates
-                    </label>
-                    <div class="bg-gray-50 p-4 rounded-md">
-                        @foreach($interestRates as $rate)
-                            <div class="flex justify-between items-center py-1">
-                                <span class="text-sm">{{ $rate->name }}</span>
-                                <span class="text-sm font-medium">{{ $rate->rate_percentage }}% per month</span>
-                            </div>
-                        @endforeach
-                        <p class="text-xs text-gray-500 mt-2">* Final interest rate will be set by the administrator</p>
-                    </div>
-                </div>
-                @endif
-
-                <!-- Purpose -->
+                <!-- Purpose/Description/Notes -->
                 <div class="mb-6">
                     <label for="purpose" class="block text-sm font-medium text-gray-700 mb-2">
-                        Purpose of Loan *
+                        Purpose / Description / Notes (Optional)
                     </label>
                     <textarea id="purpose" name="purpose" rows="4"
                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('purpose') border-red-500 @enderror"
-                              placeholder="Please describe why you need this loan and how you plan to use it..." required>{{ old('purpose') }}</textarea>
+                              placeholder="Optional: Describe the purpose of this loan...">{{ old('purpose') }}</textarea>
                     @error('purpose')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

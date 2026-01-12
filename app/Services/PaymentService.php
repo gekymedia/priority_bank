@@ -276,6 +276,9 @@ class PaymentService
                 'transaction_reference' => $gatewayResponse['reference'] ?? $gatewayResponse['transaction_id'] ?? null,
             ]);
 
+            // Automatically deduct from outstanding loans (handled by SavingsController)
+            // This is called from SavingsController callback, which will handle auto-deduction
+
             // Update group funds
             $groupFund = \App\Models\GroupFund::getInstance();
             $groupFund->updateTotals();

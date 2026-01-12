@@ -332,8 +332,18 @@ class SavingsController extends Controller
             $processResult = $this->paymentService->processSavingsDeposit($saving, $result);
 
             if ($processResult['success']) {
+                // Reload saving to get updated data
+                $saving->refresh();
+                
+                // Automatically deduct from outstanding loans
+                $this->processAutomaticLoanRepayment($saving);
+
+                // Update group funds
+                $groupFund = \App\Models\GroupFund::getInstance();
+                $groupFund->updateTotals();
+
                 return redirect()->route('savings.index')
-                    ->with('success', 'Deposit completed successfully!');
+                    ->with('success', 'Deposit completed successfully! ' . ($saving->status === 'withdrawn' ? 'Amount automatically applied to your outstanding loans.' : ''));
             } else {
                 return redirect()->route('savings.index')
                     ->withErrors(['payment' => $processResult['message']]);
@@ -362,6 +372,9 @@ class SavingsController extends Controller
             'approval_status' => 'approved',
             'status' => 'available',
         ]);
+
+        // Automatically deduct from outstanding loans
+        $this->processAutomaticLoanRepayment($saving);
 
         // Update group funds
         $groupFund = GroupFund::getInstance();
