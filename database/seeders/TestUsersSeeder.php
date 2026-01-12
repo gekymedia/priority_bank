@@ -20,6 +20,7 @@ class TestUsersSeeder extends Seeder
             'password' => bcrypt('password'),
             'phone' => '+233501234567',
             'role' => 'admin',
+            'status' => 'approved', // Admins are always approved
             'preferred_currency' => 'GHS',
             'notification_email' => true,
             'notification_browser' => true,
@@ -39,6 +40,7 @@ class TestUsersSeeder extends Seeder
             User::create(array_merge($userData, [
                 'password' => bcrypt('password'),
                 'role' => 'user',
+                'status' => 'approved', // Test users are pre-approved for testing
                 'preferred_currency' => 'GHS',
                 'notification_email' => true,
                 'notification_browser' => true,
