@@ -8,6 +8,16 @@
     <!-- Compiled Assets -->
     <link rel="stylesheet" href="{{ asset('build/assets/app-BcwfKLHV.css') }}">
     <script src="{{ asset('build/assets/app-DaBYqt0m.js') }}" defer></script>
+    
+    <!-- Tailwind CSS Safelist for dynamic classes -->
+    <style>
+        /* Ensure Tailwind utilities work with all types */
+        .transition {
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -51,10 +61,10 @@
                         Go to Dashboard
                     </a>
                 @else
-                    <a href="{{ route('register') }}" class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    <a href="{{ route('register') }}" class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200">
                         Join Our Community
                     </a>
-                    <a href="{{ route('login') }}" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition">
+                    <a href="{{ route('login') }}" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition-all duration-200">
                         Sign In
                     </a>
                 @endauth
@@ -106,11 +116,11 @@
             <h2 class="text-3xl font-bold mb-4">Ready to Join?</h2>
             <p class="text-xl mb-8">Start your journey towards financial freedom with friends you can trust.</p>
             @auth
-                <a href="{{ route('dashboard') }}" class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition inline-block">
+                <a href="{{ route('dashboard') }}" class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 inline-block">
                     Access Your Dashboard
                 </a>
             @else
-                <a href="{{ route('register') }}" class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition inline-block">
+                <a href="{{ route('register') }}" class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 inline-block">
                     Join Our Community
                 </a>
             @endauth
