@@ -5,10 +5,12 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">All Transactions</h1>
-        <a href="{{ route('transactions.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
-            Add New Transaction
-        </a>
+        <h1 class="text-3xl font-bold">{{ Auth::user()->isAdmin() ? 'All Transactions' : 'My Transactions' }}</h1>
+        @if(Auth::user()->isAdmin())
+            <a href="{{ route('transactions.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
+                Add New Transaction
+            </a>
+        @endif
     </div>
 
     <!-- Transaction Filters -->
