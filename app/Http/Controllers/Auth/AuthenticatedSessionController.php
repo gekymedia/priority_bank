@@ -37,7 +37,7 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerateToken();
             
             return back()->withErrors([
-                'email' => 'Your account is pending admin approval. Please wait for approval before logging in.',
+                'login' => 'Your account is pending admin approval. Please wait for approval before logging in.',
             ]);
         }
 

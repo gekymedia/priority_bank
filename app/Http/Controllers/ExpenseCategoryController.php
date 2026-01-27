@@ -48,6 +48,13 @@ class ExpenseCategoryController extends Controller
             ->exists();
             
         if ($exists) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This category name already exists.',
+                    'errors' => ['name' => ['This category name already exists.']]
+                ], 422);
+            }
             return back()->withErrors(['name' => 'This category name already exists.'])->withInput();
         }
         
@@ -55,10 +62,18 @@ class ExpenseCategoryController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        ExpenseCategory::create([
+        $category = ExpenseCategory::create([
             'name' => $validated['name'],
             'user_id' => $userId,
         ]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense category created successfully.',
+                'category' => $category
+            ]);
+        }
 
         return redirect()->route('expense-categories.index')
             ->with('success', 'Expense category created successfully.');

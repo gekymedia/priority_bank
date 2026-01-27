@@ -165,4 +165,45 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')
             ->with('success', 'User rejected successfully.');
     }
+
+    /**
+     * Impersonate a user.
+     */
+    public function impersonate(User $user)
+    {
+        // Prevent impersonating yourself
+        if ($user->id === auth()->id()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'You cannot impersonate yourself.');
+        }
+
+        // Store the original admin user ID in session
+        session(['impersonating' => auth()->id()]);
+        
+        // Log in as the target user
+        auth()->login($user);
+
+        return redirect()->route('dashboard')
+            ->with('success', "You are now impersonating {$user->name}.");
+    }
+
+    /**
+     * Stop impersonating and return to admin account.
+     */
+    public function stopImpersonating()
+    {
+        if (!session()->has('impersonating')) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You are not currently impersonating anyone.');
+        }
+
+        $adminId = session('impersonating');
+        session()->forget('impersonating');
+
+        $admin = User::findOrFail($adminId);
+        auth()->login($admin);
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'You have stopped impersonating.');
+    }
 }

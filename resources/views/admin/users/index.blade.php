@@ -138,6 +138,14 @@
                                         </button>
                                     </form>
                                 @endif
+                                @if($user->id !== auth()->id() && $user->status === 'approved')
+                                    <form action="{{ route('admin.users.impersonate', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-purple-600 hover:text-purple-900" title="Impersonate">
+                                            <i class="fas fa-user-secret"></i>
+                                        </button>
+                                    </form>
+                                @endif
                                 <a href="{{ route('admin.users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="View">
                                     <i class="fas fa-eye"></i>
                                 </a>

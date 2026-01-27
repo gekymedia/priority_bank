@@ -121,6 +121,11 @@
                 </div>
             </div>
             <p class="text-sm text-gray-500 mt-2">Awaiting approval</p>
+            @if($pendingLoanRequests > 0)
+                <a href="{{ route('loan-requests.index', ['status' => 'pending']) }}" class="text-orange-600 hover:text-orange-800 text-sm font-medium mt-2 inline-block">
+                    View Requests →
+                </a>
+            @endif
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
@@ -138,6 +143,128 @@
             <p class="text-sm text-gray-500 mt-2">Active group loans</p>
         </div>
     </div>
+
+    <!-- Pending Loan Requests Notifications -->
+    @if(isset($pendingLoanRequestsList) && $pendingLoanRequestsList->count() > 0)
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+        <div class="p-6 border-b border-gray-200 bg-orange-50">
+            <h3 class="text-lg font-semibold flex items-center">
+                <i class="fas fa-bell text-orange-500 mr-2"></i>
+                Pending Loan Requests ({{ $pendingLoanRequestsList->count() }})
+            </h3>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @foreach($pendingLoanRequestsList as $loanRequest)
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <p class="font-medium text-gray-900">{{ $loanRequest->user->name }}</p>
+                                <p class="text-sm text-gray-500">{{ $loanRequest->user->email }}</p>
+                            </div>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                Pending
+                            </span>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Amount:</span>
+                                <span class="font-semibold text-gray-900 ml-1">GHS {{ number_format($loanRequest->amount_requested, 2) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Payback Date:</span>
+                                <span class="font-semibold text-gray-900 ml-1">{{ $loanRequest->expected_payback_date->format('M d, Y') }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Requested:</span>
+                                <span class="font-semibold text-gray-900 ml-1">{{ $loanRequest->request_date->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        @if($loanRequest->purpose)
+                        <div class="mt-2">
+                            <span class="text-gray-500 text-sm">Purpose:</span>
+                            <p class="text-sm text-gray-700 mt-1">{{ $loanRequest->purpose }}</p>
+                        </div>
+                        @endif
+                    </div>
+                    <div class="ml-4 flex flex-col gap-2">
+                        <a href="{{ route('loan-requests.show', $loanRequest) }}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                            <i class="fas fa-eye mr-1"></i> Review & Approve
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @if($pendingLoanRequests > $pendingLoanRequestsList->count())
+        <div class="p-4 bg-gray-50 text-center">
+            <a href="{{ route('loan-requests.index', ['status' => 'pending']) }}" class="text-blue-500 hover:text-blue-700 font-medium">
+                View All {{ $pendingLoanRequests }} Pending Requests →
+            </a>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    <!-- Pending Deposits Notifications -->
+    @if(isset($pendingDepositsList) && $pendingDepositsList->count() > 0)
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+        <div class="p-6 border-b border-gray-200 bg-blue-50">
+            <h3 class="text-lg font-semibold flex items-center">
+                <i class="fas fa-money-bill-wave text-blue-500 mr-2"></i>
+                Pending Deposit Requests ({{ $pendingDepositsList->count() }})
+            </h3>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @foreach($pendingDepositsList as $deposit)
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <p class="font-medium text-gray-900">{{ $deposit->user->name }}</p>
+                                <p class="text-sm text-gray-500">{{ $deposit->user->email }}</p>
+                            </div>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                Pending
+                            </span>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Amount:</span>
+                                <span class="font-semibold text-gray-900 ml-1">GHS {{ number_format($deposit->amount, 2) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Date:</span>
+                                <span class="font-semibold text-gray-900 ml-1">{{ $deposit->created_at->format('M d, Y') }}</span>
+                            </div>
+                        </div>
+                        @if($deposit->description)
+                        <div class="mt-2">
+                            <span class="text-gray-500 text-sm">Description:</span>
+                            <p class="text-sm text-gray-700 mt-1">{{ $deposit->description }}</p>
+                        </div>
+                        @endif
+                    </div>
+                    <div class="ml-4 flex flex-col gap-2">
+                        <a href="{{ route('deposits.show', $deposit) }}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                            <i class="fas fa-eye mr-1"></i> Review & Approve
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @if($pendingDepositsCount > $pendingDepositsList->count())
+        <div class="p-4 bg-gray-50 text-center">
+            <a href="{{ route('deposits.index') }}" class="text-blue-500 hover:text-blue-700 font-medium">
+                View All {{ $pendingDepositsCount }} Pending Deposits →
+            </a>
+        </div>
+        @endif
+    </div>
+    @endif
 
     <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

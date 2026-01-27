@@ -4,7 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-// Redirect root to login (private bank group - no welcome page)
+// Welcome page
 Route::get('/', function () {
     if (auth()->check()) {
         if (auth()->user()->isAdmin()) {
@@ -12,7 +12,7 @@ Route::get('/', function () {
         }
         return redirect()->route('dashboard');
     }
-    return redirect()->route('login');
+    return view('welcome');
 });
 
 // Legal Pages
@@ -35,9 +35,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('users', \App\Http\Controllers\UserController::class);
     Route::post('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
     Route::post('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
+    Route::post('users/{user}/impersonate', [\App\Http\Controllers\UserController::class, 'impersonate'])->name('users.impersonate');
+    
+    // Fund Sources
+    Route::get('/fund-sources', [\App\Http\Controllers\FundSourceController::class, 'index'])->name('fund-sources.index');
+    Route::post('/fund-sources/transfer', [\App\Http\Controllers\FundSourceController::class, 'transfer'])->name('fund-sources.transfer');
+    
+    // System Registry (Sources) Management
+    Route::post('sources', [\App\Http\Controllers\SystemRegistryController::class, 'store'])->name('sources.store');
+    Route::put('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'update'])->name('sources.update');
+    Route::delete('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'destroy'])->name('sources.destroy');
 });
 
 Route::middleware(['auth', 'approved'])->group(function () {
+    // Stop impersonating route (accessible even when impersonating)
+    Route::post('admin/users/stop-impersonating', [\App\Http\Controllers\UserController::class, 'stopImpersonating'])->name('admin.users.stop-impersonating');
+    
     // Profile routes
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
@@ -63,20 +76,32 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Category Management routes
     Route::resource('income-categories', \App\Http\Controllers\IncomeCategoryController::class)->except(['show']);
     Route::resource('expense-categories', \App\Http\Controllers\ExpenseCategoryController::class)->except(['show']);
+    
+    // Unified Category Management (Admin only)
+    Route::middleware('admin')->group(function () {
+        Route::resource('categories', \App\Http\Controllers\CategoryController::class)->except(['show', 'create', 'edit']);
+    });
 
     // Credit Union routes
     Route::resource('savings', \App\Http\Controllers\SavingsController::class);
     Route::post('savings/withdraw', [\App\Http\Controllers\SavingsController::class, 'withdraw'])->name('savings.withdraw');
     Route::get('savings/callback/{gateway}', [\App\Http\Controllers\SavingsController::class, 'callback'])->name('savings.callback');
+    Route::post('savings/{saving}/retry-payment', [\App\Http\Controllers\SavingsController::class, 'retryPayment'])->name('savings.retry-payment');
     
     // Admin approval routes for savings deposits
     Route::middleware('admin')->group(function () {
         Route::post('savings/{saving}/approve', [\App\Http\Controllers\SavingsController::class, 'approve'])->name('savings.approve');
         Route::post('savings/{saving}/reject', [\App\Http\Controllers\SavingsController::class, 'reject'])->name('savings.reject');
+        Route::post('savings/{saving}/mark-as-failed', [\App\Http\Controllers\SavingsController::class, 'markAsFailed'])->name('savings.mark-as-failed');
     });
+    Route::post('savings/{saving}/try-again', [\App\Http\Controllers\SavingsController::class, 'tryAgain'])->name('savings.try-again');
     Route::resource('loan-requests', \App\Http\Controllers\LoanRequestsController::class);
     Route::post('loan-requests/{loan_request}/approve', [\App\Http\Controllers\LoanRequestsController::class, 'approve'])->name('loan-requests.approve');
     Route::post('loan-requests/{loan_request}/reject', [\App\Http\Controllers\LoanRequestsController::class, 'reject'])->name('loan-requests.reject');
+    Route::post('loan-requests/{loan_request}/record-payment', [\App\Http\Controllers\LoanRequestsController::class, 'recordPayment'])->name('loan-requests.record-payment');
+    Route::resource('deposits', \App\Http\Controllers\DepositController::class);
+    Route::post('deposits/{deposit}/approve', [\App\Http\Controllers\DepositController::class, 'approve'])->name('deposits.approve');
+    Route::post('deposits/{deposit}/reject', [\App\Http\Controllers\DepositController::class, 'reject'])->name('deposits.reject');
     Route::resource('payments', \App\Http\Controllers\PaymentsController::class);
 
     // Payment gateway callbacks and webhooks

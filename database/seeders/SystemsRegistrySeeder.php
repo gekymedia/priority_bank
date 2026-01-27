@@ -113,6 +113,33 @@ class SystemsRegistrySeeder extends Seeder
                 $system
             );
         }
+
+        // Add protected sources (non-deletable)
+        $protectedSources = [
+            [
+                'system_id' => 'personal_ceo',
+                'name' => 'Personal(CEO)',
+                'type' => 'manual',
+                'description' => 'Personal transactions for CEO',
+                'active_status' => true,
+                'is_protected' => true,
+            ],
+            [
+                'system_id' => 'priority_bank',
+                'name' => 'Priority Bank',
+                'type' => 'manual',
+                'description' => 'Priority Bank default source',
+                'active_status' => true,
+                'is_protected' => true,
+            ],
+        ];
+
+        foreach ($protectedSources as $source) {
+            SystemRegistry::updateOrCreate(
+                ['system_id' => $source['system_id']],
+                $source
+            );
+        }
     }
 }
 

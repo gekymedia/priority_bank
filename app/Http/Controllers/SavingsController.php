@@ -71,7 +71,7 @@ class SavingsController extends Controller
                 'notes' => $request->notes,
                 'payment_method' => 'direct',
                 'approval_status' => 'pending',
-                'status' => 'locked', // Locked until approved
+                'status' => 'pending', // Pending until approved
             ]);
 
             return redirect()->route('savings.index')
@@ -79,15 +79,24 @@ class SavingsController extends Controller
         }
 
         // Online payment (Paystack or Hubtel)
-        $activeGateway = $this->paymentService->getActiveGateway();
+        $gateway = $paymentMethod; // Use the selected payment method directly
         
-        if (!$activeGateway) {
-            return back()->withErrors(['payment' => 'Online payment is currently unavailable. Please use direct deposit.']);
+        // Validate that the selected gateway is available
+        $paystackAvailable = !empty(config('services.paystack.secret_key'));
+        $hubtelAvailable = !empty(config('services.hubtel.api_key') ?? config('services.hubtel.client_id')) && 
+                          !empty(config('services.hubtel.api_secret') ?? config('services.hubtel.client_secret'));
+        
+        if ($gateway === 'paystack' && !$paystackAvailable) {
+            return back()->withErrors(['payment' => 'Paystack payment is currently unavailable. Please use another payment method.']);
         }
-
-        // Use the active gateway (Hubtel takes precedence)
-        $gateway = ($activeGateway === 'hubtel' && $paymentMethod === 'hubtel') ? 'hubtel' : 
-                   (($activeGateway === 'paystack' && $paymentMethod === 'paystack') ? 'paystack' : $activeGateway);
+        
+        if ($gateway === 'hubtel' && !$hubtelAvailable) {
+            return back()->withErrors(['payment' => 'Hubtel payment is currently unavailable. Please use another payment method.']);
+        }
+        
+        if (!in_array($gateway, ['paystack', 'hubtel'])) {
+            return back()->withErrors(['payment' => 'Invalid payment method selected.']);
+        }
 
         $reference = $this->paymentService->generateReference();
 
@@ -100,7 +109,7 @@ class SavingsController extends Controller
             'notes' => $request->notes,
             'payment_method' => $gateway,
             'approval_status' => 'pending',
-            'status' => 'locked',
+            'status' => 'pending',
             'transaction_reference' => $reference,
         ]);
 
@@ -123,17 +132,63 @@ class SavingsController extends Controller
             $result = $this->paymentService->initializeHubtelPayment($paymentData);
         }
 
+        // Log the result for debugging
+        \Illuminate\Support\Facades\Log::info('Payment initialization result', [
+            'gateway' => $gateway,
+            'result' => $result,
+            'saving_id' => $saving->id
+        ]);
+
         if (isset($result['error'])) {
-            $saving->update(['approval_status' => 'rejected']);
-            return back()->withErrors(['payment' => $result['error']]);
+            // Don't mark as failed immediately - keep as pending for 24 hours
+            // Only show error to user but keep status as pending
+            \Illuminate\Support\Facades\Log::error('Payment initialization error', [
+                'error' => $result['error'],
+                'saving_id' => $saving->id,
+                'gateway' => $gateway
+            ]);
+            return back()->withErrors(['payment' => $result['error'] . ' Your deposit is still pending. You can try again later.']);
         }
 
-        // Redirect to payment gateway
-        $redirectUrl = $gateway === 'paystack' 
-            ? $result['data']['authorization_url'] 
-            : $result['data']['checkoutUrl'] ?? $result['checkoutUrl'];
-
-        return redirect($redirectUrl);
+        // Redirect to payment gateway (matching CUG pattern)
+        if ($gateway === 'paystack') {
+            // Paystack response structure: { status: true, data: { authorization_url: '...' } }
+            if (isset($result['status']) && $result['status'] === true && isset($result['data']['authorization_url'])) {
+                \Illuminate\Support\Facades\Log::info('Redirecting to Paystack', [
+                    'url' => $result['data']['authorization_url'],
+                    'reference' => $result['data']['reference'] ?? 'N/A',
+                    'saving_id' => $saving->id
+                ]);
+                // Direct redirect like CUG does with ->redirectNow()
+                return redirect($result['data']['authorization_url']);
+            } else {
+                \Illuminate\Support\Facades\Log::error('Paystack redirect URL not found', [
+                    'result' => $result,
+                    'status' => $result['status'] ?? 'not set',
+                    'has_data' => isset($result['data']),
+                    'has_auth_url' => isset($result['data']['authorization_url'])
+                ]);
+                // Don't mark as failed immediately - keep as pending for 24 hours
+                return back()->withErrors(['payment' => 'Failed to initialize payment. Your deposit is still pending. You can try again later.']);
+            }
+        } else {
+            // Hubtel response structure: { status: true, data: { checkoutUrl: '...' } } or { checkoutUrl: '...' }
+            $redirectUrl = $result['data']['checkoutUrl'] ?? $result['checkoutUrl'] ?? null;
+            if ($redirectUrl) {
+                \Illuminate\Support\Facades\Log::info('Redirecting to Hubtel', [
+                    'url' => $redirectUrl,
+                    'saving_id' => $saving->id
+                ]);
+                return redirect($redirectUrl);
+            } else {
+                \Illuminate\Support\Facades\Log::error('Hubtel redirect URL not found', [
+                    'result' => $result,
+                    'saving_id' => $saving->id
+                ]);
+                // Don't mark as failed immediately - keep as pending for 24 hours
+                return back()->withErrors(['payment' => 'Failed to initialize payment. Your deposit is still pending. You can try again later.']);
+            }
+        }
     }
 
     /**
@@ -199,9 +254,9 @@ class SavingsController extends Controller
      */
     protected function processWithdrawal($user, $amount, $date, $reference, $notes)
     {
-        // Get available savings in order (oldest first)
+        // Get successful savings in order (oldest first)
         $availableSavings = Saving::where('user_id', $user->id)
-            ->where('status', 'available')
+            ->where('status', 'successful')
             ->orderBy('deposit_date', 'asc')
             ->get();
 
@@ -227,7 +282,7 @@ class SavingsController extends Controller
                     'user_id' => $user->id,
                     'amount' => $remainingSaving,
                     'deposit_date' => $saving->deposit_date,
-                    'status' => 'available',
+                    'status' => 'successful',
                     'notes' => $saving->notes,
                 ]);
 
@@ -246,8 +301,95 @@ class SavingsController extends Controller
      */
     public function show(Saving $saving)
     {
-        $this->authorize('view', $saving);
+        // Allow user to view their own savings, or admin to view any
+        if (!Auth::user()->isAdmin() && $saving->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
         return view('savings.show', compact('saving'));
+    }
+
+    /**
+     * Retry payment for a pending online payment (Paystack/Hubtel).
+     */
+    public function retryPayment(Saving $saving)
+    {
+        // Only the owner can retry payment
+        if ($saving->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Only allow retry for pending online payments
+        if (!in_array($saving->payment_method, ['paystack', 'hubtel']) || 
+            $saving->approval_status !== 'pending' || 
+            $saving->status !== 'pending') {
+            return back()->withErrors(['payment' => 'This deposit cannot be paid at this time.']);
+        }
+
+        $gateway = $saving->payment_method;
+        $user = $saving->user;
+
+        // Use existing transaction reference or generate new one
+        $reference = $saving->transaction_reference ?? $this->paymentService->generateReference();
+        
+        // Update reference if it was missing
+        if (!$saving->transaction_reference) {
+            $saving->update(['transaction_reference' => $reference]);
+        }
+
+        // Initialize payment
+        $paymentData = [
+            'email' => $user->email,
+            'amount' => $saving->amount,
+            'reference' => $reference,
+            'callback_url' => route('savings.callback', ['gateway' => $gateway]),
+            'customer_name' => $user->name,
+            'phone' => $user->phone ?? '',
+            'user_id' => $user->id,
+            'saving_id' => $saving->id,
+            'payment_type' => 'savings_deposit'
+        ];
+
+        if ($gateway === 'paystack') {
+            $result = $this->paymentService->initializePaystackPayment($paymentData);
+        } else {
+            $result = $this->paymentService->initializeHubtelPayment($paymentData);
+        }
+
+        // Log the result for debugging
+        \Illuminate\Support\Facades\Log::info('Payment retry initialization result', [
+            'gateway' => $gateway,
+            'result' => $result,
+            'saving_id' => $saving->id
+        ]);
+
+        if (isset($result['error'])) {
+            return back()->withErrors(['payment' => $result['error']]);
+        }
+
+        // Redirect to payment gateway
+        if ($gateway === 'paystack') {
+            if (isset($result['status']) && $result['status'] === true && isset($result['data']['authorization_url'])) {
+                \Illuminate\Support\Facades\Log::info('Redirecting to Paystack (retry)', [
+                    'url' => $result['data']['authorization_url']
+                ]);
+                return redirect($result['data']['authorization_url']);
+            } else {
+                \Illuminate\Support\Facades\Log::error('Paystack redirect URL not found (retry)', [
+                    'result' => $result
+                ]);
+                return back()->withErrors(['payment' => 'Failed to initialize payment. Please check your Paystack configuration.']);
+            }
+        } else {
+            // Hubtel
+            $redirectUrl = $result['data']['checkoutUrl'] ?? $result['checkoutUrl'] ?? null;
+            if ($redirectUrl) {
+                \Illuminate\Support\Facades\Log::info('Redirecting to Hubtel (retry)', ['url' => $redirectUrl]);
+                return redirect($redirectUrl);
+            } else {
+                \Illuminate\Support\Facades\Log::error('Hubtel redirect URL not found (retry)', ['result' => $result]);
+                return back()->withErrors(['payment' => 'Failed to initialize payment. Please check your Hubtel configuration.']);
+            }
+        }
     }
 
     /**
@@ -255,7 +397,10 @@ class SavingsController extends Controller
      */
     public function edit(Saving $saving)
     {
-        $this->authorize('update', $saving);
+        // Allow user to edit their own savings, or admin to edit any
+        if (!Auth::user()->isAdmin() && $saving->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
         return view('savings.edit', compact('saving'));
     }
 
@@ -264,12 +409,15 @@ class SavingsController extends Controller
      */
     public function update(Request $request, Saving $saving)
     {
-        $this->authorize('update', $saving);
+        // Allow user to update their own savings, or admin to update any
+        if (!Auth::user()->isAdmin() && $saving->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
 
         $request->validate([
             'amount' => 'required|numeric|min:1',
             'deposit_date' => 'required|date|before_or_equal:today',
-            'status' => 'required|in:available,withdrawn,locked',
+            'status' => 'required|in:pending,successful,failed,withdrawn',
             'notes' => 'nullable|string|max:500',
         ]);
 
@@ -288,7 +436,10 @@ class SavingsController extends Controller
      */
     public function destroy(Saving $saving)
     {
-        $this->authorize('delete', $saving);
+        // Allow user to delete their own savings, or admin to delete any
+        if (!Auth::user()->isAdmin() && $saving->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
 
         $saving->delete();
 
@@ -318,22 +469,39 @@ class SavingsController extends Controller
             return redirect()->route('savings.index')->withErrors(['payment' => 'Deposit not found']);
         }
 
-        // Verify payment with gateway
+        // Verify payment with gateway (matching CUG pattern)
         if ($gateway === 'paystack') {
             $result = $this->paymentService->verifyPaystackPayment($reference);
+            // Match CUG pattern: check status field
+            $isSuccessful = ($result['status'] ?? false) === true && ($result['success'] ?? false) === true;
         } elseif ($gateway === 'hubtel') {
             $result = $this->paymentService->verifyHubtelPayment($reference);
+            $isSuccessful = $result['success'] ?? false;
         } else {
             return redirect()->route('savings.index')->withErrors(['payment' => 'Invalid payment gateway']);
         }
 
-        if ($result['success']) {
+        if ($isSuccessful) {
             // Process successful payment
             $processResult = $this->paymentService->processSavingsDeposit($saving, $result);
 
             if ($processResult['success']) {
                 // Reload saving to get updated data
                 $saving->refresh();
+                
+                // Create income transaction against Priority Bank source
+                $priorityBank = \App\Models\SystemRegistry::where('system_id', 'priority_bank')->first();
+                if ($priorityBank) {
+                    \App\Models\Transaction::create([
+                        'user_id' => $saving->user_id,
+                        'type' => 'income',
+                        'category' => 'Savings',
+                        'amount' => $saving->amount,
+                        'date' => $saving->deposit_date,
+                        'description' => "Savings deposit from {$saving->user->name} - #{$saving->id} (Payment: {$gateway})",
+                        'external_system_id' => $priorityBank->id,
+                    ]);
+                }
                 
                 // Automatically deduct from outstanding loans
                 $this->processAutomaticLoanRepayment($saving);
@@ -342,6 +510,14 @@ class SavingsController extends Controller
                 $groupFund = \App\Models\GroupFund::getInstance();
                 $groupFund->updateTotals();
 
+                // Notify the user about successful deposit
+                $userNotificationService = new \App\Services\UserNotificationService();
+                $userNotificationService->notifyDepositApproved(
+                    $saving->user,
+                    $saving->amount,
+                    ucfirst($gateway)
+                );
+
                 return redirect()->route('savings.index')
                     ->with('success', 'Deposit completed successfully! ' . ($saving->status === 'withdrawn' ? 'Amount automatically applied to your outstanding loans.' : ''));
             } else {
@@ -349,7 +525,10 @@ class SavingsController extends Controller
                     ->withErrors(['payment' => $processResult['message']]);
             }
         } else {
-            $saving->update(['approval_status' => 'rejected']);
+            $saving->update([
+                'approval_status' => 'rejected',
+                'status' => 'failed'
+            ]);
             return redirect()->route('savings.index')
                 ->withErrors(['payment' => $result['message'] ?? 'Payment verification failed']);
         }
@@ -370,8 +549,22 @@ class SavingsController extends Controller
 
         $saving->update([
             'approval_status' => 'approved',
-            'status' => 'available',
+            'status' => 'successful',
         ]);
+
+        // Create income transaction against Priority Bank source
+        $priorityBank = \App\Models\SystemRegistry::where('system_id', 'priority_bank')->first();
+        if ($priorityBank) {
+            \App\Models\Transaction::create([
+                'user_id' => $saving->user_id,
+                'type' => 'income',
+                'category' => 'Savings',
+                'amount' => $saving->amount,
+                'date' => $saving->deposit_date,
+                'description' => "Savings deposit from {$saving->user->name} - #{$saving->id} (Direct Deposit)",
+                'external_system_id' => $priorityBank->id,
+            ]);
+        }
 
         // Automatically deduct from outstanding loans
         $this->processAutomaticLoanRepayment($saving);
@@ -379,6 +572,14 @@ class SavingsController extends Controller
         // Update group funds
         $groupFund = GroupFund::getInstance();
         $groupFund->updateTotals();
+
+        // Notify the user about deposit approval
+        $userNotificationService = new \App\Services\UserNotificationService();
+        $userNotificationService->notifyDepositApproved(
+            $saving->user,
+            $saving->amount,
+            'Direct Deposit'
+        );
 
         return redirect()->route('savings.index')
             ->with('success', 'Deposit approved successfully!');
@@ -399,10 +600,73 @@ class SavingsController extends Controller
 
         $saving->update([
             'approval_status' => 'rejected',
+            'status' => 'failed',
         ]);
 
+        // Notify the user about deposit rejection
+        $userNotificationService = new \App\Services\UserNotificationService();
+        $userNotificationService->notifyDepositFailed(
+            $saving->user,
+            $saving->amount,
+            'Deposit was rejected by admin'
+        );
+
         return redirect()->route('savings.index')
-            ->with('success', 'Deposit rejected.');
+            ->with('success', 'Deposit marked as failed.');
+    }
+
+    /**
+     * Mark a deposit as failed (Admin only) - when MoMo transaction not found
+     */
+    public function markAsFailed(Saving $saving)
+    {
+        if (!Auth::user()->isAdmin()) {
+            abort(403, 'Only administrators can mark deposits as failed.');
+        }
+
+        if ($saving->status === 'successful' || $saving->status === 'withdrawn') {
+            return back()->withErrors(['status' => 'Cannot mark a successful or withdrawn deposit as failed.']);
+        }
+
+        $saving->update([
+            'approval_status' => 'rejected',
+            'status' => 'failed',
+        ]);
+
+        // Notify the user about deposit failure
+        $userNotificationService = new \App\Services\UserNotificationService();
+        $userNotificationService->notifyDepositFailed(
+            $saving->user,
+            $saving->amount,
+            'No transaction found in MoMo account. You can try again.'
+        );
+
+        return redirect()->route('savings.index')
+            ->with('success', 'Deposit marked as failed. User can try again.');
+    }
+
+    /**
+     * Try again - Change status from failed back to pending (User only)
+     */
+    public function tryAgain(Saving $saving)
+    {
+        // Only the owner can try again
+        if ($saving->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Only allow if status is failed
+        if ($saving->status !== 'failed') {
+            return back()->withErrors(['status' => 'This deposit cannot be retried.']);
+        }
+
+        $saving->update([
+            'approval_status' => 'pending',
+            'status' => 'pending',
+        ]);
+
+        return redirect()->route('savings.show', $saving)
+            ->with('success', 'Deposit status reset to pending. Admin will review again.');
     }
 
     /**

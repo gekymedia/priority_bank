@@ -19,12 +19,14 @@ class SystemRegistry extends Model
         'callback_url',
         'api_base_url',
         'active_status',
+        'is_protected',
         'description',
         'metadata',
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
+        'is_protected' => 'boolean',
         'metadata' => 'array',
     ];
 
@@ -42,6 +44,20 @@ class SystemRegistry extends Model
     public function scopeOfType($query, string $type)
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($system) {
+            if ($system->is_protected) {
+                throw new \Exception('Protected sources cannot be deleted.');
+            }
+        });
     }
 }
 

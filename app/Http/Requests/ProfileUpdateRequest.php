@@ -22,6 +22,9 @@ class ProfileUpdateRequest extends FormRequest
             'preferred_currency' => ['nullable', 'string', 'max:10'],
             'notification_email' => ['nullable', 'boolean'],
             'notification_browser' => ['nullable', 'boolean'],
+            'notification_sms' => ['nullable', 'boolean'],
+            'notification_whatsapp' => ['nullable', 'boolean'],
+            'notification_gekychat' => ['nullable', 'boolean'],
             'theme' => ['nullable', 'in:light,dark'],
             'photo' => ['nullable', 'image', 'max:10048'],
         ];

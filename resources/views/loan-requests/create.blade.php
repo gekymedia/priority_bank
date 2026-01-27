@@ -26,8 +26,8 @@
                     </label>
                     <input type="number" id="amount_requested" name="amount_requested" value="{{ old('amount_requested') }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('amount_requested') border-red-500 @enderror"
-                           placeholder="0.00" step="0.01" min="1" max="{{ $groupFund->available_for_loans }}" required>
-                    <p class="text-sm text-gray-500 mt-1">Maximum available: GHS {{ number_format($groupFund->available_for_loans, 2) }}</p>
+                           placeholder="0.00" step="0.01" min="1" required>
+                    <p class="text-sm text-gray-500 mt-1">Enter the loan amount you wish to request. Admin will review and approve based on available funds.</p>
                     @error('amount_requested')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

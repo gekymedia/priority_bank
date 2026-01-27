@@ -1,47 +1,85 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    @section('title', 'Sign In')
+    @section('subtitle', 'Welcome back! Sign in to continue')
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <!-- Login (Email or Phone) -->
+        <div class="form-group">
+            <label for="login" class="form-label">
+                <i class="fas fa-user"></i>
+                Email or Phone Number
+            </label>
+            <input 
+                type="text" 
+                id="login" 
+                name="login" 
+                class="form-control @error('login') is-invalid @enderror" 
+                value="{{ old('login') }}" 
+                placeholder="Enter your email or phone number" 
+                required 
+                autofocus
+            >
+            @error('login')
+                <div class="form-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ $message }}
+                </div>
+            @enderror
         </div>
 
         <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div class="form-group">
+            <label for="password" class="form-label">
+                <i class="fas fa-lock"></i>
+                Password
+            </label>
+            <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                class="form-control @error('password') is-invalid @enderror" 
+                placeholder="Enter your password" 
+                required
+            >
+            @error('password')
+                <div class="form-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ $message }}
+                </div>
+            @enderror
         </div>
 
         <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
+        <div class="form-group">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                <label class="form-check-label" for="remember">Remember me</label>
+            </div>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
+        <!-- Forgot Password -->
+        @if (Route::has('password.request'))
+            <div class="forgot-password">
+                <a href="{{ route('password.request') }}">
+                    <i class="fas fa-key me-1"></i>Forgot your password?
                 </a>
-            @endif
+            </div>
+        @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
+        <!-- Submit Button -->
+        <button type="submit" class="btn-auth">
+            <i class="fas fa-sign-in-alt"></i>
+            Sign In
+        </button>
+
+        <!-- Register Link -->
+        <div class="auth-links">
+            <p>Don't have an account?</p>
+            <a href="{{ route('register') }}">
+                <i class="fas fa-user-plus me-1"></i>Create an account
+            </a>
         </div>
     </form>
 </x-guest-layout>

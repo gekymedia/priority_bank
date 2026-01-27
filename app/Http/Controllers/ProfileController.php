@@ -41,9 +41,12 @@ class ProfileController extends Controller
             $data['profile_photo_path'] = $path;
         }
 
-        // Assign defaults for notification toggles if missing
-        $data['notification_email'] = $data['notification_email'] ?? false;
-        $data['notification_browser'] = $data['notification_browser'] ?? false;
+        // Convert checkbox values to boolean for notification preferences
+        $data['notification_email'] = isset($data['notification_email']) && $data['notification_email'] == '1';
+        $data['notification_browser'] = isset($data['notification_browser']) && $data['notification_browser'] == '1';
+        $data['notification_sms'] = isset($data['notification_sms']) && $data['notification_sms'] == '1';
+        $data['notification_whatsapp'] = isset($data['notification_whatsapp']) && $data['notification_whatsapp'] == '1';
+        $data['notification_gekychat'] = isset($data['notification_gekychat']) && $data['notification_gekychat'] == '1';
         $data['theme'] = $data['theme'] ?? $user->theme;
 
         $user->fill($data);

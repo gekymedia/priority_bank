@@ -43,6 +43,14 @@ class Transaction extends Model
     }
 
     /**
+     * Get the external system associated with the transaction.
+     */
+    public function externalSystem()
+    {
+        return $this->belongsTo(SystemRegistry::class, 'external_system_id');
+    }
+
+    /**
      * Scope a query to only include income transactions.
      */
     public function scopeIncome($query)

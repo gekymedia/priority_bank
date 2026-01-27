@@ -77,6 +77,91 @@
                     <x-input-error class="mt-2" :messages="$errors->get('email')" />
                 </div>
 
+                <div>
+                    <x-input-label for="phone" :value="__('Phone Number')" />
+                    <x-text-input id="phone" 
+                                 name="phone" 
+                                 type="tel" 
+                                 class="mt-1 block w-full" 
+                                 :value="old('phone', $user->phone)" 
+                                 autocomplete="tel" />
+                    <x-input-error class="mt-2" :messages="$errors->get('phone')" />
+                </div>
+
+                <!-- Notification Preferences -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+                    <p class="text-sm text-gray-600 mb-4">Select which notification channels you want to receive updates on.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <input id="notification_email" 
+                                   name="notification_email" 
+                                   type="checkbox" 
+                                   value="1"
+                                   {{ old('notification_email', $user->notification_email ?? true) ? 'checked' : '' }}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="notification_email" class="ml-3 block text-sm font-medium text-gray-700">
+                                <span class="font-semibold">Email Notifications</span>
+                                <span class="text-gray-500 block text-xs mt-1">Receive notifications via email</span>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            <input id="notification_browser" 
+                                   name="notification_browser" 
+                                   type="checkbox" 
+                                   value="1"
+                                   {{ old('notification_browser', $user->notification_browser ?? true) ? 'checked' : '' }}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="notification_browser" class="ml-3 block text-sm font-medium text-gray-700">
+                                <span class="font-semibold">Browser Notifications</span>
+                                <span class="text-gray-500 block text-xs mt-1">Receive in-app browser notifications</span>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            <input id="notification_sms" 
+                                   name="notification_sms" 
+                                   type="checkbox" 
+                                   value="1"
+                                   {{ old('notification_sms', $user->notification_sms ?? true) ? 'checked' : '' }}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="notification_sms" class="ml-3 block text-sm font-medium text-gray-700">
+                                <span class="font-semibold">SMS Notifications</span>
+                                <span class="text-gray-500 block text-xs mt-1">Receive notifications via SMS text messages</span>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            <input id="notification_whatsapp" 
+                                   name="notification_whatsapp" 
+                                   type="checkbox" 
+                                   value="1"
+                                   {{ old('notification_whatsapp', $user->notification_whatsapp ?? true) ? 'checked' : '' }}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="notification_whatsapp" class="ml-3 block text-sm font-medium text-gray-700">
+                                <span class="font-semibold">WhatsApp Notifications</span>
+                                <span class="text-gray-500 block text-xs mt-1">Receive notifications via WhatsApp</span>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center">
+                            <input id="notification_gekychat" 
+                                   name="notification_gekychat" 
+                                   type="checkbox" 
+                                   value="1"
+                                   {{ old('notification_gekychat', $user->notification_gekychat ?? true) ? 'checked' : '' }}
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="notification_gekychat" class="ml-3 block text-sm font-medium text-gray-700">
+                                <span class="font-semibold">GekyChat Notifications</span>
+                                <span class="text-gray-500 block text-xs mt-1">Receive notifications via GekyChat</span>
+                            </label>
+                        </div>
+                    </div>
+                    <x-input-error class="mt-2" :messages="$errors->get('notification_*')" />
+                </div>
+
                 <div class="flex items-center gap-4">
                     <x-primary-button>{{ __('Save') }}</x-primary-button>
                 </div>

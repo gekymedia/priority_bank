@@ -19,11 +19,32 @@ class LoanController extends Controller
         $user = Auth::user();
         
         if ($user->isAdmin()) {
-            // Admins see all group loans
+            // For admin, show Priority Bank transactions (income and expense from Priority Bank source)
+            $priorityBankSource = \App\Models\SystemRegistry::where('system_id', 'priority_bank')->first();
+            
+            if ($priorityBankSource) {
+                $transactions = \App\Models\Transaction::where('external_system_id', $priorityBankSource->id)
+                    ->latest()
+                    ->paginate(20);
+                
+                $totalIncome = \App\Models\Transaction::where('external_system_id', $priorityBankSource->id)
+                    ->where('type', 'income')
+                    ->sum('amount') ?? 0;
+                
+                $totalExpense = \App\Models\Transaction::where('external_system_id', $priorityBankSource->id)
+                    ->where('type', 'expense')
+                    ->sum('amount') ?? 0;
+                
+                return view('loans.index', compact('transactions', 'totalIncome', 'totalExpense', 'priorityBankSource'));
+            }
+            
+            // Fallback to loans if source not found
             $loans = Loan::where('is_group_loan', true)
                 ->with(['user', 'account'])
                 ->latest()
                 ->paginate(20);
+            
+            return view('loans.index', compact('loans'));
         } else {
             // Normal users see only their loans
             $loans = Loan::where('user_id', $user->id)
@@ -31,9 +52,9 @@ class LoanController extends Controller
                 ->with('account')
                 ->latest()
                 ->paginate(20);
+            
+            return view('loans.index', compact('loans'));
         }
-        
-        return view('loans.index', compact('loans'));
     }
 
     public function create()

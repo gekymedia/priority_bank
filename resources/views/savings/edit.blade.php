@@ -54,8 +54,9 @@
                     </label>
                     <select id="status" name="status"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 @error('status') border-red-500 @enderror">
-                        <option value="available" {{ old('status', $saving->status) === 'available' ? 'selected' : '' }}>Available</option>
-                        <option value="locked" {{ old('status', $saving->status) === 'locked' ? 'selected' : '' }}>Locked</option>
+                        <option value="pending" {{ old('status', $saving->status) === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="successful" {{ old('status', $saving->status) === 'successful' ? 'selected' : '' }}>Successful</option>
+                        <option value="failed" {{ old('status', $saving->status) === 'failed' ? 'selected' : '' }}>Failed</option>
                         <option value="withdrawn" {{ old('status', $saving->status) === 'withdrawn' ? 'selected' : '' }}>Withdrawn</option>
                     </select>
                     @error('status')
@@ -77,7 +78,7 @@
                     @enderror
                 </div>
 
-                @if($saving->status === 'available')
+                @if($saving->status === 'successful')
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -87,7 +88,7 @@
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-yellow-700">
-                                <strong>Note:</strong> Changes to available savings may affect loan availability for the group.
+                                <strong>Note:</strong> Changes to successful savings may affect loan availability for the group.
                             </p>
                         </div>
                     </div>

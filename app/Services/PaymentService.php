@@ -47,50 +47,85 @@ class PaymentService
 
     /**
      * Initialize Paystack payment
+     * Returns authorization URL for redirect (similar to CUG implementation)
      */
     public function initializePaystackPayment(array $data)
     {
         try {
+            // Generate reference if not provided (like CUG does)
+            $reference = $data['reference'] ?? $this->generateReference();
+            
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->paystackSecretKey,
                 'Content-Type' => 'application/json',
             ])->post('https://api.paystack.co/transaction/initialize', [
                 'email' => $data['email'],
-                'amount' => $data['amount'] * 100, // Paystack expects amount in kobo
+                'amount' => $data['amount'] * 100, // Paystack expects amount in kobo (pesewas)
                 'currency' => 'GHS',
-                'reference' => $data['reference'],
+                'reference' => $reference,
                 'callback_url' => $data['callback_url'],
-                'metadata' => [
+                'metadata' => array_merge([
                     'loan_id' => $data['loan_id'] ?? null,
                     'saving_id' => $data['saving_id'] ?? null,
+                    'deposit_id' => $data['deposit_id'] ?? null,
                     'user_id' => $data['user_id'],
                     'payment_type' => $data['payment_type'] ?? 'loan_repayment'
-                ]
+                ], $data['metadata'] ?? [])
             ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $result = $response->json();
+                
+                // Verify the response structure (matching CUG pattern)
+                if (isset($result['status']) && $result['status'] === true && isset($result['data']['authorization_url'])) {
+                    Log::info('Paystack payment initialized successfully', [
+                        'authorization_url' => $result['data']['authorization_url'],
+                        'reference' => $result['data']['reference'] ?? $reference
+                    ]);
+                    
+                    // Return in format similar to CUG's Paystack package
+                    return [
+                        'status' => true,
+                        'data' => [
+                            'authorization_url' => $result['data']['authorization_url'],
+                            'reference' => $result['data']['reference'] ?? $reference
+                        ]
+                    ];
+                } else {
+                    Log::error('Paystack response structure invalid', [
+                        'response' => $result,
+                        'has_status' => isset($result['status']),
+                        'status_value' => $result['status'] ?? 'not set',
+                        'has_data' => isset($result['data']),
+                        'has_auth_url' => isset($result['data']['authorization_url'])
+                    ]);
+                    return ['error' => 'Invalid response from payment gateway. Please check your Paystack configuration.'];
+                }
             }
 
+            $errorResponse = $response->json();
             Log::error('Paystack initialization failed', [
                 'response' => $response->body(),
-                'status' => $response->status()
+                'status' => $response->status(),
+                'error_message' => $errorResponse['message'] ?? 'Unknown error'
             ]);
 
-            return ['error' => 'Payment initialization failed'];
+            return ['error' => 'Payment initialization failed: ' . ($errorResponse['message'] ?? 'Unknown error')];
 
         } catch (\Exception $e) {
             Log::error('Paystack payment initialization error', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'data' => $data
             ]);
 
-            return ['error' => 'Payment service temporarily unavailable'];
+            return ['error' => 'Payment service temporarily unavailable: ' . $e->getMessage()];
         }
     }
 
     /**
-     * Verify Paystack payment
+     * Verify Paystack payment (matching CUG pattern)
+     * Returns data in format similar to CUG's $this->paystack->getPaymentData()
      */
     public function verifyPaystackPayment(string $reference)
     {
@@ -102,28 +137,54 @@ class PaymentService
             if ($response->successful()) {
                 $data = $response->json();
 
-                if ($data['data']['status'] === 'success') {
+                // Match CUG's pattern: check if status is true and data exists
+                if (isset($data['status']) && $data['status'] === true && isset($data['data'])) {
+                    $paymentData = $data['data'];
+                    
+                    // Check if payment was successful
+                    if ($paymentData['status'] === 'success') {
                     return [
+                            'status' => true,
                         'success' => true,
-                        'data' => $data['data'],
-                        'amount' => $data['data']['amount'] / 100, // Convert from kobo to cedis
-                        'reference' => $data['data']['reference'],
-                        'metadata' => $data['data']['metadata'] ?? []
+                            'data' => $paymentData,
+                            'amount' => $paymentData['amount'] / 100, // Convert from kobo to cedis
+                            'reference' => $paymentData['reference'],
+                            'metadata' => $paymentData['metadata'] ?? []
                     ];
-                }
-
-                return ['success' => false, 'message' => 'Payment not successful'];
+                    } else {
+                        return [
+                            'status' => false,
+                            'success' => false,
+                            'message' => 'Payment not successful. Status: ' . ($paymentData['status'] ?? 'unknown')
+                        ];
+                    }
             }
 
-            return ['success' => false, 'message' => 'Verification failed'];
+                return [
+                    'status' => false,
+                    'success' => false,
+                    'message' => 'Invalid response structure from Paystack'
+                ];
+            }
+
+            return [
+                'status' => false,
+                'success' => false,
+                'message' => 'Verification failed. HTTP Status: ' . $response->status()
+            ];
 
         } catch (\Exception $e) {
             Log::error('Paystack verification error', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'reference' => $reference
             ]);
 
-            return ['success' => false, 'message' => 'Verification service unavailable'];
+            return [
+                'status' => false,
+                'success' => false,
+                'message' => 'Verification service unavailable: ' . $e->getMessage()
+            ];
         }
     }
 
@@ -272,7 +333,7 @@ class PaymentService
             // Update saving with gateway response
             $saving->update([
                 'approval_status' => 'approved',
-                'status' => 'available',
+                'status' => 'successful',
                 'transaction_reference' => $gatewayResponse['reference'] ?? $gatewayResponse['transaction_id'] ?? null,
             ]);
 

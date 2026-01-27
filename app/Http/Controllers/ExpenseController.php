@@ -20,7 +20,17 @@ class ExpenseController extends Controller
         $expenses = Expense::where('user_id', Auth::id())
             ->with(['category', 'account'])
             ->latest()->paginate(10);
-        return view('expenses.index', compact('expenses'));
+        
+        // Get data for modals
+        $categories = ExpenseCategory::whereNull('user_id')
+            ->orWhere('user_id', Auth::id())
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
+        $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
+        
+        return view('expenses.index', compact('expenses', 'categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -83,6 +93,13 @@ class ExpenseController extends Controller
                 $savedCount++;
             }
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $savedCount . ' expense record(s) recorded successfully.',
+                    'count' => $savedCount
+                ]);
+            }
             return redirect()->route('expenses.index')->with('success', $savedCount . ' expense record(s) recorded successfully.');
         } else {
             // Handle single expense record (backward compatibility)
@@ -118,6 +135,13 @@ class ExpenseController extends Controller
                 }
             }
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Expense recorded successfully.',
+                    'expense' => $expense->load(['category', 'account'])
+                ]);
+            }
             return redirect()->route('expenses.index')->with('success', 'Expense recorded successfully.');
         }
     }

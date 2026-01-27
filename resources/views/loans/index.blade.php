@@ -2,6 +2,124 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
+    @if(Auth::user()->isAdmin() && isset($transactions))
+        <!-- Priority Bank Transactions View -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold">Priority Bank</h1>
+            <p class="text-gray-600 mt-1">Income and Expenditure from Priority Bank Source</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 font-medium">Total Income</p>
+                        <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalIncome ?? 0, 2) }}</h2>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-arrow-down text-green-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 font-medium">Total Expenses</p>
+                        <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalExpense ?? 0, 2) }}</h2>
+                    </div>
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <i class="fas fa-arrow-up text-red-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-gray-500 font-medium">Net Balance</p>
+                        <h2 class="text-2xl font-bold mt-2">GHS {{ number_format(($totalIncome ?? 0) - ($totalExpense ?? 0), 2) }}</h2>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-balance-scale text-blue-500 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maximum Available for Loans Card -->
+        @php
+            $groupFund = \App\Models\GroupFund::getInstance();
+            $maxAvailable = $groupFund->available_for_loans ?? 0;
+        @endphp
+        <div class="mb-6">
+            <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-md p-4 text-white">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm font-medium opacity-90">Maximum Available for Loans</p>
+                        <h3 class="text-2xl font-bold mt-1">GHS {{ number_format($maxAvailable, 2) }}</h3>
+                        <p class="text-xs opacity-75 mt-1">Users can request any amount, but approval depends on available funds</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                        <i class="fas fa-coins text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category/Directorate</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($transactions as $transaction)
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ $transaction->date->format('M d, Y') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $transaction->type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ ucfirst($transaction->type) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ $transaction->description ?? '-' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ $transaction->category }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm {{ $transaction->type === 'income' ? 'text-green-600' : 'text-red-600' }}">
+                                {{ $transaction->type === 'income' ? '+' : '-' }}GHS {{ number_format($transaction->amount, 2) }}
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                No transactions found for Priority Bank source.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if($transactions->hasPages())
+            <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                {{ $transactions->links() }}
+            </div>
+            @endif
+        </div>
+    @else
+        <!-- Regular Loans View -->
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold">{{ Auth::user()->isAdmin() ? 'All Group Loans' : 'My Loans' }}</h1>
@@ -112,5 +230,6 @@
     <div class="mt-4">
         {{ $loans->links() }}
     </div>
+    @endif
 </div>
 @endsection

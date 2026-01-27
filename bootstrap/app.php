@@ -45,5 +45,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // Dispatch a job or call a service to check budget overspend
             \Log::info('Weekly budget overspend check executed');
         })->weeklyOn(1, '08:00');
+
+        // Mark expired payments as failed - run hourly
+        $schedule->command('payments:mark-expired-as-failed')->hourly();
     })
     ->create();

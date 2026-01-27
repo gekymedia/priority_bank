@@ -37,6 +37,9 @@ class User extends Authenticatable
         'preferred_currency',
         'notification_email',
         'notification_browser',
+        'notification_sms',
+        'notification_whatsapp',
+        'notification_gekychat',
         'theme',
         'role',
         'status',
@@ -64,6 +67,9 @@ class User extends Authenticatable
             'password' => 'hashed',
             'notification_email' => 'boolean',
             'notification_browser' => 'boolean',
+            'notification_sms' => 'boolean',
+            'notification_whatsapp' => 'boolean',
+            'notification_gekychat' => 'boolean',
         ];
     }
 
@@ -152,7 +158,7 @@ class User extends Authenticatable
      */
     public function getSavingsBalanceAttribute()
     {
-        return $this->savings()->where('status', 'available')->sum('amount');
+        return $this->savings()->where('status', 'successful')->sum('amount');
     }
 
     /**
@@ -165,6 +171,13 @@ class User extends Authenticatable
                             ->sum('remaining_balance');
     }
 
+    /**
+     * Get the user's net balance (savings - loans).
+     */
+    public function getNetBalanceAttribute()
+    {
+        return $this->savings_balance - $this->loan_balance;
+    }
 
     /**
      * Get detailed balance breakdown.

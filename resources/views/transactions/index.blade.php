@@ -7,9 +7,10 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">{{ Auth::user()->isAdmin() ? 'All Transactions' : 'My Transactions' }}</h1>
         @if(Auth::user()->isAdmin())
-            <a href="{{ route('transactions.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
+            <button id="newTransactionBtnFromPage" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center">
+                <i class="fas fa-plus mr-2"></i>
                 Add New Transaction
-            </a>
+            </button>
         @endif
     </div>
 
@@ -60,9 +61,12 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        @if(Auth::user()->isAdmin())
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        @endif
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category/Directorate</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -73,6 +77,14 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $transaction->date->format('M d, Y') }}
                         </td>
+                        @if(Auth::user()->isAdmin())
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ $transaction->user->name ?? 'N/A' }}
+                            @if($transaction->externalSystem)
+                                <br><span class="text-xs text-gray-500">Source: {{ $transaction->externalSystem->name }}</span>
+                            @endif
+                        </td>
+                        @endif
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $transaction->type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                 {{ ucfirst($transaction->type) }}
@@ -108,4 +120,28 @@
         @endif
     </div>
 </div>
+
+@if(Auth::user()->isAdmin())
+@push('scripts')
+<script>
+    // Open transaction modal from page button
+    document.addEventListener('DOMContentLoaded', function() {
+        const newTransactionBtnFromPage = document.getElementById('newTransactionBtnFromPage');
+        const transactionModal = document.getElementById('transactionModal');
+        
+        if (newTransactionBtnFromPage && transactionModal) {
+            newTransactionBtnFromPage.addEventListener('click', function() {
+                transactionModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                // Focus on first input (Source) after a short delay
+                setTimeout(() => {
+                    const firstInput = document.getElementById('modal_external_system_id');
+                    if (firstInput) firstInput.focus();
+                }, 100);
+            });
+        }
+    });
+</script>
+@endpush
+@endif
 @endsection

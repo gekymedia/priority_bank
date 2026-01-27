@@ -15,16 +15,24 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::where('user_id', auth()->id())
-            ->when(request('type'), function ($query) {
-                return $query->where('type', request('type'));
+        $query = Transaction::query();
+        
+        // Admins see all transactions, regular users see only their own
+        if (!auth()->user()->isAdmin()) {
+            $query->where('user_id', auth()->id());
+        }
+        
+        $transactions = $query
+            ->when(request('type'), function ($q) {
+                return $q->where('type', request('type'));
             })
-            ->when(request('start_date'), function ($query) {
-                return $query->where('date', '>=', request('start_date'));
+            ->when(request('start_date'), function ($q) {
+                return $q->where('date', '>=', request('start_date'));
             })
-            ->when(request('end_date'), function ($query) {
-                return $query->where('date', '<=', request('end_date'));
+            ->when(request('end_date'), function ($q) {
+                return $q->where('date', '<=', request('end_date'));
             })
+            ->with(['user', 'externalSystem'])
             ->latest()
             ->paginate(15);
 
@@ -37,11 +45,27 @@ class TransactionController extends Controller
     public function create()
     {
         $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
+        $categories = \App\Models\Category::all()->groupBy(function($category) {
+            if ($category->type === 'both') {
+                return 'both';
+            }
+            return $category->type;
+        })->map(function($group) {
+            return $group->pluck('name')->toArray();
+        })->toArray();
+        
+        // Ensure both income and expense arrays exist
+        $categories['income'] = array_merge(
+            $categories['income'] ?? [],
+            $categories['both'] ?? []
+        );
+        $categories['expense'] = array_merge(
+            $categories['expense'] ?? [],
+            $categories['both'] ?? []
+        );
+        
         return view('transactions.create', [
-            'categories' => [
-                'income' => ['Salary', 'Bonus', 'Freelance', 'Investment'],
-                'expense' => ['Food', 'Transport', 'Housing', 'Entertainment']
-            ],
+            'categories' => $categories,
             'systems' => $systems
         ]);
     }
@@ -51,27 +75,74 @@ class TransactionController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'type' => 'required|in:income,expense',
-            'category' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
-            'date' => 'required|date',
-            'description' => 'nullable|string',
-            'external_system_id' => 'nullable|exists:systems_registry,id'
-        ]);
+        try {
+            $validated = $request->validate([
+                'type' => 'required|in:income,expense',
+                'category' => 'required|string|max:255',
+                'amount' => 'required|numeric|min:0.01',
+                'date' => 'required|date',
+                'description' => 'nullable|string',
+                'external_system_id' => 'nullable|exists:systems_registry,id',
+                'user_id' => 'nullable|exists:users,id'
+            ]);
 
-        Transaction::create([
-            'user_id' => auth()->id(),
-            'type' => $validated['type'],
-            'category' => $validated['category'],
-            'amount' => $validated['amount'],
-            'date' => $validated['date'],
-            'description' => $validated['description'],
-            'external_system_id' => $validated['external_system_id'] ?? null
-        ]);
+            // Get Priority Bank source
+            $priorityBank = SystemRegistry::where('system_id', 'priority_bank')->first();
+            $isPriorityBank = $priorityBank && $validated['external_system_id'] == $priorityBank->id;
+            
+            // If Priority Bank transaction and admin is creating it, set category to loan/savings
+            $category = $validated['category'];
+            if ($isPriorityBank && auth()->user()->isAdmin() && isset($validated['user_id'])) {
+                // Override category based on type for Priority Bank transactions
+                $category = $validated['type'] === 'expense' ? 'loan' : 'savings';
+            }
 
-        return redirect()->route('transactions.index')
-            ->with('success', 'Transaction added successfully!');
+            $transaction = Transaction::create([
+                'user_id' => $validated['user_id'] ?? auth()->id(),
+                'type' => $validated['type'],
+                'category' => $category,
+                'amount' => $validated['amount'],
+                'date' => $validated['date'],
+                'description' => $validated['description'],
+                'external_system_id' => $validated['external_system_id'] ?? null
+            ]);
+
+            // Notify user if admin created transaction for another user
+            if (auth()->user()->isAdmin() && isset($validated['user_id']) && $validated['user_id'] != auth()->id()) {
+                $user = \App\Models\User::find($validated['user_id']);
+                if ($user) {
+                    $userNotificationService = new \App\Services\UserNotificationService();
+                    $userNotificationService->notifyTransactionCreated(
+                        $user,
+                        $validated['type'],
+                        $validated['amount'],
+                        $category,
+                        $validated['description']
+                    );
+                }
+            }
+
+            // Handle AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transaction added successfully!'
+                ]);
+            }
+
+            return redirect()->route('transactions.index')
+                ->with('success', 'Transaction added successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            
+            throw $e;
+        }
     }
 
     /**

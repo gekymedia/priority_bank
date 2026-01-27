@@ -45,28 +45,28 @@ class Saving extends Model
     }
 
     /**
-     * Check if the saving is available for loans.
+     * Check if the saving is successful and available for loans.
      */
     public function isAvailable()
     {
-        return $this->status === 'available';
+        return $this->status === 'successful';
     }
 
     /**
-     * Get available savings for a user.
+     * Get successful savings for a user.
      */
     public function scopeAvailable($query)
     {
-        return $query->where('status', 'available');
+        return $query->where('status', 'successful');
     }
 
     /**
-     * Get total available savings amount for a user.
+     * Get total successful savings amount for a user.
      */
     public function scopeTotalAvailableForUser($query, $userId)
     {
         return $query->where('user_id', $userId)
-                    ->where('status', 'available')
+                    ->where('status', 'successful')
                     ->sum('amount');
     }
 }

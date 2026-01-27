@@ -45,20 +45,21 @@ class DashboardController extends Controller
         
         $thirtyDaysAgo = Carbon::now()->subDays(30);
 
-        // Financial Summary
-        $totalIncome = Income::where('user_id', $user->id)
+        // Financial Summary - Admin sees ALL transactions across all users
+        $totalIncome = \App\Models\Transaction::where('type', 'income')
             ->where('date', '>=', $thirtyDaysAgo)
             ->sum('amount');
 
-        $totalExpenses = Expense::where('user_id', $user->id)
+        $totalExpenses = \App\Models\Transaction::where('type', 'expense')
             ->where('date', '>=', $thirtyDaysAgo)
             ->sum('amount');
 
-        $activeLoans = Loan::where('user_id', $user->id)
+        // Active Loans - All group loans across all users
+        $activeLoans = Loan::where('is_group_loan', true)
             ->where('status', 'borrowed')
-            ->sum('amount');
+            ->sum('remaining_balance');
 
-        $loansCount = Loan::where('user_id', $user->id)
+        $loansCount = Loan::where('is_group_loan', true)
             ->where('status', 'borrowed')
             ->count();
 
@@ -69,10 +70,17 @@ class DashboardController extends Controller
         $pendingLoanRequests = LoanRequest::pending()->count();
         $totalCreditUnionLoans = Loan::creditUnionLoans()->active()->sum('amount');
 
-        // Charts & Recent
-        $incomeExpenseChart = $this->generateIncomeExpenseChart($user, $thirtyDaysAgo);
-        $expenseCategoryChart = $this->generateExpenseCategoryChart($user, $thirtyDaysAgo);
-        $recentTransactions = $this->getRecentTransactions($user);
+        // Get pending loan requests for notifications
+        $pendingLoanRequestsList = LoanRequest::pending()->with('user')->latest()->take(5)->get();
+        
+        // Get pending deposits for notifications
+        $pendingDepositsList = \App\Models\Deposit::pending()->with('user')->latest()->take(5)->get();
+        $pendingDepositsCount = \App\Models\Deposit::pending()->count();
+
+        // Charts & Recent - Admin sees all transactions
+        $incomeExpenseChart = $this->generateIncomeExpenseChart(null, $thirtyDaysAgo);
+        $expenseCategoryChart = $this->generateExpenseCategoryChart(null, $thirtyDaysAgo);
+        $recentTransactions = $this->getRecentTransactions(null);
 
         // AI Insights with Cache
         $aiInsights = Cache::remember("ai-insights-{$user->id}", now()->addHours(6), function () use (
@@ -91,7 +99,8 @@ class DashboardController extends Controller
             'totalIncome', 'totalExpenses', 'activeLoans', 'loansCount',
             'netBalance', 'incomeExpenseChart', 'expenseCategoryChart',
             'recentTransactions', 'aiInsights', 'groupFund', 'pendingLoanRequests',
-            'totalCreditUnionLoans', 'pendingUsersCount'
+            'totalCreditUnionLoans', 'pendingUsersCount', 'pendingLoanRequestsList',
+            'pendingDepositsList', 'pendingDepositsCount'
         ));
     }
 
@@ -117,25 +126,29 @@ class DashboardController extends Controller
             ->whereIn('status', ['pending', 'approved'])
             ->get();
 
-        // Group Fund Info
-        $groupFund = GroupFund::getInstance();
-
         return view('dashboard', compact(
             'savingsBalance', 'loanBalance', 'netBalance', 'recentSavings',
-            'recentLoans', 'recentPayments', 'activeLoanRequests', 'groupFund'
+            'recentLoans', 'recentPayments', 'activeLoanRequests'
         ));
     }
 
     protected function generateIncomeExpenseChart($user, $startDate)
     {
-        $incomeData = Income::where('user_id', $user->id)
-            ->where('date', '>=', $startDate)
-            ->selectRaw('DATE(date) as day, SUM(amount) as total')
+        // If user is null, show all transactions (admin view)
+        $incomeQuery = \App\Models\Transaction::where('type', 'income')
+            ->where('date', '>=', $startDate);
+        if ($user) {
+            $incomeQuery->where('user_id', $user->id);
+        }
+        $incomeData = $incomeQuery->selectRaw('DATE(date) as day, SUM(amount) as total')
             ->groupBy('day')->orderBy('day')->get();
 
-        $expenseData = Expense::where('user_id', $user->id)
-            ->where('date', '>=', $startDate)
-            ->selectRaw('DATE(date) as day, SUM(amount) as total')
+        $expenseQuery = \App\Models\Transaction::where('type', 'expense')
+            ->where('date', '>=', $startDate);
+        if ($user) {
+            $expenseQuery->where('user_id', $user->id);
+        }
+        $expenseData = $expenseQuery->selectRaw('DATE(date) as day, SUM(amount) as total')
             ->groupBy('day')->orderBy('day')->get();
 
         $labels = [];
@@ -157,46 +170,47 @@ class DashboardController extends Controller
 
     protected function generateExpenseCategoryChart($user, $startDate)
     {
-        $expenses = Expense::where('user_id', $user->id)
-            ->where('date', '>=', $startDate)
-            ->selectRaw('expense_category_id, SUM(amount) as total')
-            ->groupBy('expense_category_id')
-            ->with('category')
+        // If user is null, show all transactions (admin view)
+        $expenseQuery = \App\Models\Transaction::where('type', 'expense')
+            ->where('date', '>=', $startDate);
+        if ($user) {
+            $expenseQuery->where('user_id', $user->id);
+        }
+        $expenses = $expenseQuery->selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
             ->orderByDesc('total')
             ->get();
 
         return [
-            'labels' => $expenses->map(fn($e) => optional($e->category)->name ?? 'Uncategorised'),
+            'labels' => $expenses->pluck('category'),
             'data' => $expenses->pluck('total'),
         ];
     }
 
     protected function getRecentTransactions($user)
     {
-        $incomes = Income::where('user_id', $user->id)
-            ->latest()->take(5)->get()->map(function ($item) {
+        // If user is null, show all transactions (admin view)
+        $query = \App\Models\Transaction::query();
+        if ($user) {
+            $query->where('user_id', $user->id);
+        }
+        
+        $transactions = $query->with('user')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($item) {
                 return [
-                    'type' => 'income',
+                    'type' => $item->type,
                     'amount' => $item->amount,
-                    'description' => $item->notes ?? optional($item->category)->name ?? 'Income',
-                    'category' => optional($item->category)->name ?? 'Income',
-                    'date' => $item->date
+                    'description' => $item->description ?? $item->category ?? ucfirst($item->type),
+                    'category' => $item->category ?? ucfirst($item->type),
+                    'date' => $item->date,
+                    'user' => $item->user ? $item->user->name : 'N/A'
                 ];
             });
 
-        $expenses = Expense::where('user_id', $user->id)
-            ->latest()->take(5)->get()->map(function ($item) {
-                return [
-                    'type' => 'expense',
-                    'amount' => $item->amount,
-                    'description' => $item->notes ?? optional($item->category)->name ?? 'Expense',
-                    'category' => optional($item->category)->name ?? 'Expense',
-                    'date' => $item->date
-                ];
-            });
-
-        return $incomes->merge($expenses)
-            ->sortByDesc('date')->take(5)->values()->all();
+        return $transactions->all();
     }
 
     protected function generateAiInsights($financialData)

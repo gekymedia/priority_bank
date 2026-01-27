@@ -20,7 +20,17 @@ class IncomeController extends Controller
         $incomes = Income::where('user_id', Auth::id())
             ->with(['category', 'account'])
             ->latest()->paginate(10);
-        return view('incomes.index', compact('incomes'));
+        
+        // Get data for modals
+        $categories = IncomeCategory::whereNull('user_id')
+            ->orWhere('user_id', Auth::id())
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $accounts = Account::where('user_id', Auth::id())->pluck('name', 'id');
+        $channels = ['bank' => 'Bank', 'momo' => 'Mobile Money', 'cash' => 'Cash', 'other' => 'Other'];
+        $systems = SystemRegistry::active()->orderBy('name')->pluck('name', 'id');
+        
+        return view('incomes.index', compact('incomes', 'categories', 'accounts', 'channels', 'systems'));
     }
 
     /**
@@ -84,6 +94,14 @@ class IncomeController extends Controller
                 $savedCount++;
             }
 
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $savedCount . ' income record(s) recorded successfully.',
+                    'count' => $savedCount
+                ]);
+            }
+
             return redirect()->route('incomes.index')->with('success', $savedCount . ' income record(s) recorded successfully.');
         } else {
             // Handle single income record (backward compatibility)
@@ -117,6 +135,14 @@ class IncomeController extends Controller
                     $webhookService = new ExternalSystemWebhookService();
                     $webhookService->pushIncome($income, $system);
                 }
+            }
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Income recorded successfully.',
+                    'income' => $income->load(['category', 'account'])
+                ]);
             }
 
             return redirect()->route('incomes.index')->with('success', 'Income recorded successfully.');

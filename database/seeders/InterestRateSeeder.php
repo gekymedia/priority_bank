@@ -14,6 +14,16 @@ class InterestRateSeeder extends Seeder
     {
         \App\Models\InterestRate::insert([
             [
+                'name' => 'MoMo Charges/Processing Fee',
+                'rate_percentage' => 1.00,
+                'type' => 'loan_interest',
+                'is_active' => true,
+                'effective_from' => now(),
+                'description' => 'Default 1% MoMo charges/processing fee for loans',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'name' => 'Standard Loan Rate',
                 'rate_percentage' => 5.00,
                 'type' => 'loan_interest',
