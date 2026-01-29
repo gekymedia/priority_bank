@@ -8,11 +8,20 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     if (auth()->check()) {
         if (auth()->user()->isAdmin()) {
-            return redirect()->route('admin.dashboard');
+            $response = redirect()->route('admin.dashboard');
+        } else {
+            $response = redirect()->route('dashboard');
         }
-        return redirect()->route('dashboard');
+    } else {
+        $response = response()->view('welcome');
     }
-    return view('welcome');
+    
+    // Add cache-control headers to prevent browser caching
+    $response->headers->set('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    $response->headers->set('Expires', 'Fri, 01 Jan 1990 00:00:00 GMT');
+    
+    return $response;
 });
 
 // Legal Pages
