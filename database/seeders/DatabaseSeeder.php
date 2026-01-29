@@ -53,6 +53,9 @@ class DatabaseSeeder extends Seeder
         // Seed systems registry
         $this->call(SystemsRegistrySeeder::class);
 
+        // Seed categories (Loan, Savings for Priority Bank)
+        $this->call(CategorySeeder::class);
+
         // Create group funds record
         \App\Models\GroupFund::create([
             'total_available' => 0,
