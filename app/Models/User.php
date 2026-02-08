@@ -272,6 +272,32 @@ class User extends Authenticatable
     }
 
     /**
+     * Total income records count (Income model + income Transactions e.g. admin-tagged bank).
+     */
+    public function getTotalIncomesCountAttribute(): int
+    {
+        return $this->incomes()->count() + $this->transactions()->where('type', 'income')->count();
+    }
+
+    /**
+     * Total expense records count (Expense model + expense Transactions e.g. admin-tagged bank).
+     */
+    public function getTotalExpensesCountAttribute(): int
+    {
+        return $this->expenses()->count() + $this->transactions()->where('type', 'expense')->count();
+    }
+
+    /**
+     * Total loan records count (Loan model + expense Transactions tagged as loan by admin).
+     */
+    public function getTotalLoansCountAttribute(): int
+    {
+        $groupLoans = $this->loans()->where('is_group_loan', true)->count();
+        $transactionLoans = $this->transactions()->where('type', 'expense')->count();
+        return $groupLoans + $transactionLoans;
+    }
+
+    /**
      * Get user's loan eligibility.
      */
     public function getLoanEligibilityAttribute()

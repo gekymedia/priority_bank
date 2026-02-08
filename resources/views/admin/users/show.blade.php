@@ -92,17 +92,17 @@
 
                 <div class="pt-4 border-t border-gray-200">
                     <p class="text-sm text-gray-600 mb-2">Total Incomes</p>
-                    <p class="text-lg font-semibold">{{ $user->incomes()->count() }}</p>
+                    <p class="text-lg font-semibold">{{ $user->total_incomes_count }}</p>
                 </div>
 
                 <div>
                     <p class="text-sm text-gray-600 mb-2">Total Expenses</p>
-                    <p class="text-lg font-semibold">{{ $user->expenses()->count() }}</p>
+                    <p class="text-lg font-semibold">{{ $user->total_expenses_count }}</p>
                 </div>
 
                 <div>
                     <p class="text-sm text-gray-600 mb-2">Total Loans</p>
-                    <p class="text-lg font-semibold">{{ $user->loans()->count() }}</p>
+                    <p class="text-lg font-semibold">{{ $user->total_loans_count }}</p>
                 </div>
             </div>
         </div>
