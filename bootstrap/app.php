@@ -12,11 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Trust reverse proxy (nginx/apache) so Laravel sees correct scheme (https) and host
+        $middleware->trustProxies(at: '*');
+
         // Register your middleware alias here
         $middleware->alias([
             'openai.errors' => \App\Http\Middleware\HandleOpenAIErrors::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'approved' => \App\Http\Middleware\CheckUserApproved::class,
+            'prevent.auth.cache' => \App\Http\Middleware\PreventAuthPageCache::class,
         ]);
         
         // Or append global middleware

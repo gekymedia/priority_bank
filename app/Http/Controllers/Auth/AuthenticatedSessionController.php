@@ -69,8 +69,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        // Clear all cookies and prevent caching
-        $response = redirect()->route('login');
+        // 303 See Other so browser doesn't cache the redirect; then no-cache headers prevent caching
+        $response = redirect()->route('login', [], 303);
         
         // Add cache-control headers to prevent browser caching
         $response->headers->set('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');

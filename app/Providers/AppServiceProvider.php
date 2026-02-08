@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Notifications\Sms\SmsDriverInterface;
 use App\Services\Notifications\Sms\HubtelSmsDriver;
@@ -37,6 +38,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Ensure all generated URLs use HTTPS in production (fixes logout redirect and links behind reverse proxy)
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }
