@@ -126,9 +126,15 @@ class DashboardController extends Controller
             ->whereIn('status', ['pending', 'approved'])
             ->get();
 
+        // Bank transactions tagged to this user (e.g. by admin from Priority Bank)
+        $recentTransactions = \App\Models\Transaction::where('user_id', $user->id)
+            ->latest()
+            ->take(10)
+            ->get();
+
         return view('dashboard', compact(
             'savingsBalance', 'loanBalance', 'netBalance', 'recentSavings',
-            'recentLoans', 'recentPayments', 'activeLoanRequests'
+            'recentLoans', 'recentPayments', 'activeLoanRequests', 'recentTransactions'
         ));
     }
 

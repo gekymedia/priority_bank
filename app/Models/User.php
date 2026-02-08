@@ -17,6 +17,7 @@ use App\Models\ExpenseCategory;
 use App\Models\Saving;
 use App\Models\LoanRequest;
 use App\Models\Payment;
+use App\Models\Transaction;
 
 class User extends Authenticatable
 {
@@ -154,21 +155,35 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all transactions tagged to this user (e.g. admin-created bank transactions).
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
      * Get the user's available savings balance.
+     * Includes: successful Saving deposits + income Transactions (e.g. admin-tagged Priority Bank credits).
      */
     public function getSavingsBalanceAttribute()
     {
-        return $this->savings()->where('status', 'successful')->sum('amount');
+        $fromSavings = $this->savings()->where('status', 'successful')->sum('amount');
+        $fromTransactions = $this->transactions()->where('type', 'income')->sum('amount');
+        return $fromSavings + $fromTransactions;
     }
 
     /**
      * Get the user's outstanding loan balance.
+     * Includes: group loans (borrowed) + expense Transactions (e.g. admin-tagged Priority Bank debits/loans).
      */
     public function getLoanBalanceAttribute()
     {
-        return $this->loans()->where('is_group_loan', true)
-                            ->where('status', 'borrowed')
-                            ->sum('remaining_balance');
+        $fromLoans = $this->loans()->where('is_group_loan', true)
+            ->where('status', 'borrowed')
+            ->sum('remaining_balance');
+        $fromTransactions = $this->transactions()->where('type', 'expense')->sum('amount');
+        return $fromLoans + $fromTransactions;
     }
 
     /**

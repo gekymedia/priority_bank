@@ -128,6 +128,38 @@
         </div>
     </div>
 
+    <!-- Recent bank transactions (admin-tagged e.g. Priority Bank) -->
+    @if(isset($recentTransactions) && $recentTransactions->isNotEmpty())
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold">Recent bank transactions</h3>
+            <p class="text-sm text-gray-500 mt-1">Credits and debits tagged to you by admin</p>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @foreach($recentTransactions as $tx)
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-medium">{{ $tx->description ?? ucfirst($tx->category ?? $tx->type) }}</p>
+                        <p class="text-sm text-gray-500">{{ $tx->date->format('M d, Y') }} · {{ ucfirst($tx->category ?? $tx->type) }}</p>
+                    </div>
+                    <div class="text-right">
+                        @if($tx->type === 'income')
+                        <p class="font-medium text-green-500">+GHS {{ number_format($tx->amount, 2) }}</p>
+                        @else
+                        <p class="font-medium text-red-500">-GHS {{ number_format($tx->amount, 2) }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <div class="p-4 border-t border-gray-200">
+            <a href="{{ route('transactions.index') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">View all transactions →</a>
+        </div>
+    </div>
+    @endif
+
     <!-- Recent Activity -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
         <div class="p-6 border-b border-gray-200">
