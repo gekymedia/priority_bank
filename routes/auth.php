@@ -11,6 +11,53 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
+// GekyChat SSO - Auto-login via phone number (Sika Wallet integration)
+Route::get('auth/gekychat-sso', function (\Illuminate\Http\Request $request) {
+    $phone = $request->query('phone');
+    $source = $request->query('source');
+    $autoLogin = $request->query('auto_login') === 'true';
+    
+    // Validate request is from GekyChat
+    if ($source !== 'gekychat' || !$phone) {
+        return redirect()->route('login')->with('error', 'Invalid SSO request');
+    }
+    
+    // Find user by phone number
+    $user = \App\Models\User::where('phone', $phone)->first();
+    
+    if (!$user) {
+        // User doesn't exist - redirect to register with phone pre-filled
+        return redirect()->route('register')->with([
+            'phone' => $phone,
+            'from_gekychat' => true,
+            'message' => 'Create a Sika Wallet account to continue',
+        ]);
+    }
+    
+    // Auto-login the user
+    if ($autoLogin) {
+        \Illuminate\Support\Facades\Auth::login($user);
+        $request->session()->regenerate();
+        
+        // Check if there's a recipient to send Sika to
+        $recipientId = $request->query('recipient_id');
+        $recipientName = $request->query('recipient_name');
+        
+        if ($recipientId || $recipientName) {
+            // Redirect to transfer page with recipient info
+            return redirect()->route('dashboard')->with([
+                'send_sika' => true,
+                'recipient_id' => $recipientId,
+                'recipient_name' => $recipientName,
+            ]);
+        }
+        
+        return redirect()->intended(route('dashboard'));
+    }
+    
+    return redirect()->route('login')->with('phone', $phone);
+})->name('gekychat.sso');
+
 Route::middleware(['guest', 'prevent.auth.cache'])->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
