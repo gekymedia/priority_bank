@@ -92,8 +92,8 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $txn->id }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $txn->user->name ?? 'User #' . $txn->user_id }}</div>
-                            <div class="text-sm text-gray-500">{{ $txn->user->email ?? '-' }}</div>
+                            <div class="text-sm font-medium text-gray-900">User #{{ $txn->external_user_id }}</div>
+                            <div class="text-sm text-gray-500">{{ ucfirst($txn->source) }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs font-semibold rounded-full 

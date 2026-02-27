@@ -12,19 +12,19 @@ use Illuminate\Support\Facades\Log;
 class SikaWalletService
 {
     /**
-     * Get or create wallet for user
+     * Get or create wallet for external user
      */
-    public function getOrCreateWallet(int $userId): SikaWallet
+    public function getOrCreateWallet(int $externalUserId, string $source = SikaWallet::SOURCE_GEKYCHAT): SikaWallet
     {
-        return SikaWallet::getOrCreateForUser($userId);
+        return SikaWallet::getOrCreateForExternalUser($externalUserId, $source);
     }
 
     /**
      * Get wallet balance
      */
-    public function getBalance(int $userId): array
+    public function getBalance(int $externalUserId, string $source = SikaWallet::SOURCE_GEKYCHAT): array
     {
-        $wallet = $this->getOrCreateWallet($userId);
+        $wallet = $this->getOrCreateWallet($externalUserId, $source);
 
         return [
             'balance' => (float) $wallet->balance,
@@ -38,12 +38,13 @@ class SikaWalletService
      * Debit wallet (for Sika coin purchases from GekyChat)
      */
     public function debitWallet(
-        int $userId,
+        int $externalUserId,
         float $amount,
         string $idempotencyKey,
         string $type = SikaWalletTransaction::TYPE_SIKA_COIN_PURCHASE,
         ?string $description = null,
-        array $metadata = []
+        array $metadata = [],
+        string $source = SikaWallet::SOURCE_GEKYCHAT
     ): array {
         $existingTxn = SikaWalletTransaction::findByIdempotencyKey($idempotencyKey);
         if ($existingTxn) {
@@ -57,13 +58,13 @@ class SikaWalletService
             throw new WalletException('Amount must be greater than zero', 400);
         }
 
-        $wallet = $this->getOrCreateWallet($userId);
+        $wallet = $this->getOrCreateWallet($externalUserId, $source);
 
         if (!$wallet->canTransact()) {
             throw new WalletException('Wallet is not active', 403);
         }
 
-        return DB::transaction(function () use ($wallet, $userId, $amount, $idempotencyKey, $type, $description, $metadata) {
+        return DB::transaction(function () use ($wallet, $externalUserId, $amount, $idempotencyKey, $type, $description, $metadata, $source) {
             $wallet->lockForUpdate();
             $wallet->refresh();
 
@@ -81,7 +82,8 @@ class SikaWalletService
 
             $transaction = SikaWalletTransaction::create([
                 'wallet_id' => $wallet->id,
-                'user_id' => $userId,
+                'external_user_id' => $externalUserId,
+                'source' => $source,
                 'type' => $type,
                 'direction' => SikaWalletTransaction::DIRECTION_DEBIT,
                 'amount' => $amount,
@@ -97,7 +99,8 @@ class SikaWalletService
             $wallet->save();
 
             Log::info('Sika wallet debited', [
-                'user_id' => $userId,
+                'external_user_id' => $externalUserId,
+                'source' => $source,
                 'amount' => $amount,
                 'transaction_id' => $transaction->id,
                 'new_balance' => $balanceAfter,
@@ -111,12 +114,13 @@ class SikaWalletService
      * Credit wallet (for Sika coin cashouts or deposits)
      */
     public function creditWallet(
-        int $userId,
+        int $externalUserId,
         float $amount,
         string $idempotencyKey,
         string $type = SikaWalletTransaction::TYPE_SIKA_COIN_CASHOUT,
         ?string $description = null,
-        array $metadata = []
+        array $metadata = [],
+        string $source = SikaWallet::SOURCE_GEKYCHAT
     ): array {
         $existingTxn = SikaWalletTransaction::findByIdempotencyKey($idempotencyKey);
         if ($existingTxn) {
@@ -130,13 +134,13 @@ class SikaWalletService
             throw new WalletException('Amount must be greater than zero', 400);
         }
 
-        $wallet = $this->getOrCreateWallet($userId);
+        $wallet = $this->getOrCreateWallet($externalUserId, $source);
 
         if (!$wallet->canTransact()) {
             throw new WalletException('Wallet is not active', 403);
         }
 
-        return DB::transaction(function () use ($wallet, $userId, $amount, $idempotencyKey, $type, $description, $metadata) {
+        return DB::transaction(function () use ($wallet, $externalUserId, $amount, $idempotencyKey, $type, $description, $metadata, $source) {
             $wallet->lockForUpdate();
             $wallet->refresh();
 
@@ -145,7 +149,8 @@ class SikaWalletService
 
             $transaction = SikaWalletTransaction::create([
                 'wallet_id' => $wallet->id,
-                'user_id' => $userId,
+                'external_user_id' => $externalUserId,
+                'source' => $source,
                 'type' => $type,
                 'direction' => SikaWalletTransaction::DIRECTION_CREDIT,
                 'amount' => $amount,
@@ -161,7 +166,8 @@ class SikaWalletService
             $wallet->save();
 
             Log::info('Sika wallet credited', [
-                'user_id' => $userId,
+                'external_user_id' => $externalUserId,
+                'source' => $source,
                 'amount' => $amount,
                 'transaction_id' => $transaction->id,
                 'new_balance' => $balanceAfter,
@@ -196,9 +202,9 @@ class SikaWalletService
     /**
      * Get transaction history
      */
-    public function getTransactions(int $userId, int $perPage = 20): array
+    public function getTransactions(int $externalUserId, string $source = SikaWallet::SOURCE_GEKYCHAT, int $perPage = 20): array
     {
-        $wallet = $this->getOrCreateWallet($userId);
+        $wallet = $this->getOrCreateWallet($externalUserId, $source);
 
         $transactions = $wallet->transactions()
             ->orderBy('created_at', 'desc')
@@ -219,19 +225,21 @@ class SikaWalletService
      * Deposit funds to wallet (user adding money)
      */
     public function deposit(
-        int $userId,
+        int $externalUserId,
         float $amount,
         string $idempotencyKey,
         ?string $description = null,
-        array $metadata = []
+        array $metadata = [],
+        string $source = SikaWallet::SOURCE_GEKYCHAT
     ): array {
         return $this->creditWallet(
-            $userId,
+            $externalUserId,
             $amount,
             $idempotencyKey,
             SikaWalletTransaction::TYPE_DEPOSIT,
             $description ?? 'Wallet Deposit',
-            $metadata
+            $metadata,
+            $source
         );
     }
 

@@ -2,10 +2,8 @@
 
 namespace App\Models\Sika;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SikaWallet extends Model
@@ -13,7 +11,8 @@ class SikaWallet extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'external_user_id',
+        'source',
         'balance',
         'status',
         'currency',
@@ -21,16 +20,14 @@ class SikaWallet extends Model
 
     protected $casts = [
         'balance' => 'decimal:2',
+        'external_user_id' => 'integer',
     ];
 
     public const STATUS_ACTIVE = 'active';
     public const STATUS_SUSPENDED = 'suspended';
     public const STATUS_FROZEN = 'frozen';
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
+    public const SOURCE_GEKYCHAT = 'gekychat';
 
     public function transactions(): HasMany
     {
@@ -52,11 +49,22 @@ class SikaWallet extends Model
         return (float) $this->balance >= $amount;
     }
 
-    public static function getOrCreateForUser(int $userId): self
+    /**
+     * Get or create wallet for an external user
+     */
+    public static function getOrCreateForExternalUser(int $externalUserId, string $source = self::SOURCE_GEKYCHAT): self
     {
         return self::firstOrCreate(
-            ['user_id' => $userId],
+            ['external_user_id' => $externalUserId, 'source' => $source],
             ['balance' => 0, 'status' => self::STATUS_ACTIVE, 'currency' => 'GHS']
         );
+    }
+
+    /**
+     * @deprecated Use getOrCreateForExternalUser instead
+     */
+    public static function getOrCreateForUser(int $userId, string $source = self::SOURCE_GEKYCHAT): self
+    {
+        return self::getOrCreateForExternalUser($userId, $source);
     }
 }

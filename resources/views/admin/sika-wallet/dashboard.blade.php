@@ -183,8 +183,8 @@
                 <div class="p-4 hover:bg-gray-50">
                     <div class="flex justify-between items-center">
                         <div>
-                            <p class="font-medium">{{ $wallet->user->name ?? 'User #' . $wallet->user_id }}</p>
-                            <p class="text-sm text-gray-500">{{ $wallet->user->email ?? '-' }}</p>
+                            <p class="font-medium">External User #{{ $wallet->external_user_id }}</p>
+                            <p class="text-sm text-gray-500">Source: {{ ucfirst($wallet->source) }}</p>
                         </div>
                         <div class="text-right">
                             <p class="font-semibold text-green-600">GHS {{ number_format($wallet->balance, 2) }}</p>
@@ -214,7 +214,7 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="font-medium text-sm">{{ str_replace('_', ' ', $txn->type) }}</p>
-                            <p class="text-xs text-gray-500">{{ $txn->user->name ?? 'User #' . $txn->user_id }}</p>
+                            <p class="text-xs text-gray-500">User #{{ $txn->external_user_id }} ({{ ucfirst($txn->source) }})</p>
                             <p class="text-xs text-gray-400">{{ $txn->created_at->format('M d, Y H:i') }}</p>
                         </div>
                         <div class="text-right">

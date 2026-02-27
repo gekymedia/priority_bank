@@ -90,25 +90,23 @@ class SikaWalletDashboardController extends Controller
             ->get();
         
         // Recent Transactions
-        $recentTransactions = SikaWalletTransaction::with(['user', 'wallet'])
+        $recentTransactions = SikaWalletTransaction::with(['wallet'])
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
         
         // Top Wallets by Balance
-        $topWallets = SikaWallet::with('user')
-            ->orderBy('balance', 'desc')
+        $topWallets = SikaWallet::orderBy('balance', 'desc')
             ->limit(10)
             ->get();
         
         // Top Users by Transaction Volume (Last 30 days)
-        $topUsersByVolume = SikaWalletTransaction::select('user_id', DB::raw('SUM(amount) as total_volume'), DB::raw('COUNT(*) as transaction_count'))
+        $topUsersByVolume = SikaWalletTransaction::select('external_user_id', 'source', DB::raw('SUM(amount) as total_volume'), DB::raw('COUNT(*) as transaction_count'))
             ->where('status', 'COMPLETED')
             ->where('created_at', '>=', $thirtyDaysAgo)
-            ->groupBy('user_id')
+            ->groupBy('external_user_id', 'source')
             ->orderBy('total_volume', 'desc')
             ->limit(10)
-            ->with('user')
             ->get();
         
         // Chart Data
@@ -144,7 +142,7 @@ class SikaWalletDashboardController extends Controller
     
     public function transactions(Request $request)
     {
-        $query = SikaWalletTransaction::with(['user', 'wallet']);
+        $query = SikaWalletTransaction::with(['wallet']);
         
         // Filters
         if ($request->filled('type')) {
@@ -159,8 +157,12 @@ class SikaWalletDashboardController extends Controller
             $query->where('direction', $request->direction);
         }
         
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
+        if ($request->filled('external_user_id')) {
+            $query->where('external_user_id', $request->external_user_id);
+        }
+        
+        if ($request->filled('source')) {
+            $query->where('source', $request->source);
         }
         
         if ($request->filled('date_from')) {
@@ -176,7 +178,8 @@ class SikaWalletDashboardController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
                   ->orWhere('idempotency_key', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('external_user_id', $search);
             });
         }
         
@@ -187,18 +190,19 @@ class SikaWalletDashboardController extends Controller
     
     public function wallets(Request $request)
     {
-        $query = SikaWallet::with('user');
+        $query = SikaWallet::query();
         
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
         
+        if ($request->filled('source')) {
+            $query->where('source', $request->source);
+        }
+        
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            $query->where('external_user_id', $search);
         }
         
         $wallets = $query->orderBy('balance', 'desc')->paginate(50);
@@ -208,8 +212,6 @@ class SikaWalletDashboardController extends Controller
     
     public function walletDetails(SikaWallet $wallet)
     {
-        $wallet->load('user');
-        
         $transactions = $wallet->transactions()
             ->orderBy('created_at', 'desc')
             ->paginate(50);

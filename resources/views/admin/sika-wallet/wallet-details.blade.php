@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center mb-8">
         <div>
             <h1 class="text-3xl font-bold">Wallet Details</h1>
-            <p class="text-gray-500 mt-1">{{ $wallet->user->name ?? 'User #' . $wallet->user_id }}</p>
+            <p class="text-gray-500 mt-1">External User #{{ $wallet->external_user_id }} ({{ ucfirst($wallet->source) }})</p>
         </div>
         <a href="{{ route('admin.sika-wallet.wallets') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center">
             <i class="fas fa-arrow-left mr-2"></i>
@@ -21,9 +21,9 @@
                 <p class="text-lg font-semibold">{{ $wallet->id }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">User</p>
-                <p class="text-lg font-semibold">{{ $wallet->user->name ?? 'Unknown' }}</p>
-                <p class="text-sm text-gray-500">{{ $wallet->user->email ?? '-' }}</p>
+                <p class="text-sm text-gray-500">External User</p>
+                <p class="text-lg font-semibold">#{{ $wallet->external_user_id }}</p>
+                <p class="text-sm text-gray-500">Source: {{ ucfirst($wallet->source) }}</p>
             </div>
             <div>
                 <p class="text-sm text-gray-500">Balance</p>

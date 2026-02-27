@@ -2,7 +2,6 @@
 
 namespace App\Models\Sika;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +13,8 @@ class SikaWalletTransaction extends Model
 
     protected $fillable = [
         'wallet_id',
-        'user_id',
+        'external_user_id',
+        'source',
         'type',
         'direction',
         'amount',
@@ -33,6 +33,7 @@ class SikaWalletTransaction extends Model
         'balance_before' => 'decimal:2',
         'balance_after' => 'decimal:2',
         'metadata' => 'array',
+        'external_user_id' => 'integer',
     ];
 
     public const TYPE_DEPOSIT = 'DEPOSIT';
@@ -64,11 +65,6 @@ class SikaWalletTransaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(SikaWallet::class, 'wallet_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 
     public function isCompleted(): bool

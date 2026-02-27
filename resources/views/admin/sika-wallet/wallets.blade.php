@@ -26,8 +26,15 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Search User</label>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Name or email..." class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <label class="block text-sm font-medium text-gray-700 mb-1">External User ID</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="External user ID..." class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                <select name="source" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">All Sources</option>
+                    <option value="gekychat" {{ request('source') === 'gekychat' ? 'selected' : '' }}>GekyChat</option>
+                </select>
             </div>
             <div class="flex items-end gap-2">
                 <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
@@ -60,8 +67,8 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $wallet->id }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $wallet->user->name ?? 'User #' . $wallet->user_id }}</div>
-                            <div class="text-sm text-gray-500">{{ $wallet->user->email ?? '-' }}</div>
+                            <div class="text-sm font-medium text-gray-900">External User #{{ $wallet->external_user_id }}</div>
+                            <div class="text-sm text-gray-500">{{ ucfirst($wallet->source) }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="font-semibold text-green-600">GHS {{ number_format($wallet->balance, 2) }}</span>
