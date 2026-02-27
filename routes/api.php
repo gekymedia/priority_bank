@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ExpenseApiController;
 use App\Http\Controllers\Api\LoanApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\CentralFinanceApiController;
+use App\Http\Controllers\Api\SikaWalletApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,24 @@ use App\Http\Controllers\Api\CentralFinanceApiController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Health check (public)
+Route::get('/health', [SikaWalletApiController::class, 'health']);
+
+// Sika Wallet API - For GekyChat integration
+// Uses API key authentication via middleware
+Route::prefix('wallets')->middleware('auth:sanctum')->group(function () {
+    Route::get('/user/{userId}/balance', [SikaWalletApiController::class, 'getBalance']);
+    Route::get('/user/{userId}/transactions', [SikaWalletApiController::class, 'getTransactions']);
+    Route::post('/debit', [SikaWalletApiController::class, 'debit']);
+    Route::post('/credit', [SikaWalletApiController::class, 'credit']);
+    Route::post('/deposit', [SikaWalletApiController::class, 'deposit']);
+});
+
+Route::prefix('transactions')->middleware('auth:sanctum')->group(function () {
+    Route::get('/{transactionId}', [SikaWalletApiController::class, 'verifyTransaction']);
+    Route::post('/reverse', [SikaWalletApiController::class, 'reverseTransaction']);
+});
 
 // Central Finance API - Public endpoints for external systems
 // These use token-based authentication (API tokens, not user sessions)
