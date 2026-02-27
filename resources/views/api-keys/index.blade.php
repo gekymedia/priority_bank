@@ -105,6 +105,11 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
+                                {{-- Generate API Key button --}}
+                                <button onclick="generateKeyForSource('{{ $system->system_id }}', '{{ $system->name }}', '{{ $system->callback_url ?? '' }}')" 
+                                        class="text-green-600 hover:text-green-900" title="Generate API Key">
+                                    <i class="fas fa-key"></i>
+                                </button>
                                 @if(!$system->is_protected)
                                     <button onclick="editSource({{ $system->id }}, '{{ $system->system_id }}', '{{ $system->name }}', '{{ $system->type }}', '{{ $system->callback_url ?? '' }}', '{{ $system->api_base_url ?? '' }}', {{ $system->active_status ? 'true' : 'false' }}, '{{ $system->description ?? '' }}')" 
                                             class="text-blue-600 hover:text-blue-900" title="Edit">
@@ -140,13 +145,29 @@
 
     <!-- API Keys Section -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">API Keys</h2>
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">API Keys</h2>
+                <p class="text-sm text-gray-500 mt-1">Bearer tokens for authenticating API requests</p>
+            </div>
+            <button onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                <i class="fas fa-key mr-2"></i>
+                Generate API Key
+            </button>
         </div>
         @if($tokens->isEmpty())
             <div class="px-6 py-8 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-key text-gray-300 text-5xl"></i>
+                </div>
                 <p class="text-gray-600 mb-4">You don't have any API keys yet.</p>
-                <p class="text-sm text-gray-500">Create an API key to connect your business systems to Priority Bank API.</p>
+                <p class="text-sm text-gray-500 mb-4">Create an API key to connect your business systems to Priority Bank API.</p>
+                <button onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg inline-flex items-center transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    Generate Your First API Key
+                </button>
             </div>
         @else
             <div class="overflow-x-auto">
@@ -411,6 +432,21 @@
 </div>
 
 <script>
+function generateKeyForSource(systemId, systemName, callbackUrl) {
+    // Pre-fill the modal with source information
+    document.getElementById('name').value = systemName + ' API Key';
+    document.getElementById('system_id').value = systemId;
+    
+    // Show callback URL field and pre-fill if available
+    const callbackUrlGroup = document.getElementById('callback_url_group');
+    const callbackUrlInput = document.getElementById('callback_url');
+    callbackUrlGroup.style.display = 'block';
+    callbackUrlInput.value = callbackUrl || '';
+    
+    // Open the modal
+    document.getElementById('createTokenModal').classList.remove('hidden');
+}
+
 function toggleCallbackUrl(systemId) {
     const callbackUrlGroup = document.getElementById('callback_url_group');
     const callbackUrlInput = document.getElementById('callback_url');
