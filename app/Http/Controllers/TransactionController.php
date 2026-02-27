@@ -109,16 +109,24 @@ class TransactionController extends Controller
 
             // Notify user if admin created transaction for another user
             if (auth()->user()->isAdmin() && isset($validated['user_id']) && $validated['user_id'] != auth()->id()) {
-                $user = \App\Models\User::find($validated['user_id']);
-                if ($user) {
-                    $userNotificationService = new \App\Services\UserNotificationService();
-                    $userNotificationService->notifyTransactionCreated(
-                        $user,
-                        $validated['type'],
-                        $validated['amount'],
-                        $category,
-                        $validated['description']
-                    );
+                try {
+                    $user = \App\Models\User::find($validated['user_id']);
+                    if ($user) {
+                        $userNotificationService = new \App\Services\UserNotificationService();
+                        $userNotificationService->notifyTransactionCreated(
+                            $user,
+                            $validated['type'],
+                            $validated['amount'],
+                            $category,
+                            $validated['description']
+                        );
+                    }
+                } catch (\Exception $e) {
+                    // Log notification error but don't fail the transaction
+                    \Illuminate\Support\Facades\Log::warning('Failed to send transaction notification', [
+                        'user_id' => $validated['user_id'],
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
 
@@ -142,6 +150,23 @@ class TransactionController extends Controller
             }
             
             throw $e;
+        } catch (\Exception $e) {
+            // Handle any other exceptions
+            \Illuminate\Support\Facades\Log::error('Transaction store failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while saving the transaction. Please try again.'
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'An error occurred while saving the transaction. Please try again.');
         }
     }
 

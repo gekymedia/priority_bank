@@ -59,6 +59,8 @@ return [
         'client_id' => env('GEKYCHAT_CLIENT_ID'),
         'client_secret' => env('GEKYCHAT_CLIENT_SECRET'),
         'system_bot_user_id' => (int) env('GEKYCHAT_SYSTEM_BOT_USER_ID', 0),
+        // Merchant account - Priority Bank user ID that receives Sika coin purchase funds
+        'merchant_user_id' => (int) env('GEKYCHAT_MERCHANT_USER_ID', 1),
     ],
 
     'openai' => [

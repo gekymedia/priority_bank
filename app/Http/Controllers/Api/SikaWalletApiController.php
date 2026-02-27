@@ -31,12 +31,13 @@ class SikaWalletApiController extends Controller
 
     /**
      * Get wallet balance for a user
-     * GET /api/wallets/user/{userId}/balance
+     * GET /api/wallets/user/{userId}/balance?phone=+233...
      */
-    public function getBalance(int $userId): JsonResponse
+    public function getBalance(Request $request, int $userId): JsonResponse
     {
         try {
-            $balance = $this->walletService->getBalance($userId);
+            $phone = $request->query('phone');
+            $balance = $this->walletService->getBalance($userId, 'gekychat', $phone);
 
             return response()->json($balance);
 
@@ -56,6 +57,9 @@ class SikaWalletApiController extends Controller
     /**
      * Debit user's wallet (for Sika coin purchases)
      * POST /api/wallets/debit
+     * 
+     * Required: user_id, amount, idempotency_key
+     * Recommended: phone (user's phone number to match Priority Bank account)
      */
     public function debit(Request $request): JsonResponse
     {
@@ -67,7 +71,14 @@ class SikaWalletApiController extends Controller
             'idempotency_key' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'metadata' => 'nullable|array',
+            'phone' => 'nullable|string|max:20', // User's phone to match Priority Bank account
         ]);
+
+        // Include phone in metadata for the service to use
+        $metadata = $validated['metadata'] ?? [];
+        if (!empty($validated['phone'])) {
+            $metadata['phone'] = $validated['phone'];
+        }
 
         try {
             $result = $this->walletService->debitWallet(
@@ -76,7 +87,7 @@ class SikaWalletApiController extends Controller
                 $validated['idempotency_key'],
                 $validated['type'] ?? 'SIKA_COIN_PURCHASE',
                 $validated['description'] ?? null,
-                $validated['metadata'] ?? []
+                $metadata
             );
 
             return response()->json($result);
@@ -99,12 +110,14 @@ class SikaWalletApiController extends Controller
             Log::error('Wallet debit failed', [
                 'user_id' => $validated['user_id'],
                 'amount' => $validated['amount'],
+                'phone' => $validated['phone'] ?? null,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'error' => 'debit_failed',
-                'message' => 'Failed to process debit',
+                'message' => 'Failed to process debit: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -112,6 +125,9 @@ class SikaWalletApiController extends Controller
     /**
      * Credit user's wallet (for Sika coin cashouts)
      * POST /api/wallets/credit
+     * 
+     * Required: user_id, amount, idempotency_key
+     * Recommended: phone (user's phone number to match Priority Bank account)
      */
     public function credit(Request $request): JsonResponse
     {
@@ -123,7 +139,14 @@ class SikaWalletApiController extends Controller
             'idempotency_key' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'metadata' => 'nullable|array',
+            'phone' => 'nullable|string|max:20', // User's phone to match Priority Bank account
         ]);
+
+        // Include phone in metadata for the service to use
+        $metadata = $validated['metadata'] ?? [];
+        if (!empty($validated['phone'])) {
+            $metadata['phone'] = $validated['phone'];
+        }
 
         try {
             $result = $this->walletService->creditWallet(
@@ -132,7 +155,7 @@ class SikaWalletApiController extends Controller
                 $validated['idempotency_key'],
                 $validated['type'] ?? 'SIKA_COIN_CASHOUT',
                 $validated['description'] ?? null,
-                $validated['metadata'] ?? []
+                $metadata
             );
 
             return response()->json($result);
@@ -147,12 +170,13 @@ class SikaWalletApiController extends Controller
             Log::error('Wallet credit failed', [
                 'user_id' => $validated['user_id'],
                 'amount' => $validated['amount'],
+                'phone' => $validated['phone'] ?? null,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'error' => 'credit_failed',
-                'message' => 'Failed to process credit',
+                'message' => 'Failed to process credit: ' . $e->getMessage(),
             ], 500);
         }
     }
