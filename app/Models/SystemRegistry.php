@@ -31,6 +31,14 @@ class SystemRegistry extends Model
     ];
 
     /**
+     * Get the system user account associated with this source.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Get all active systems.
      */
     public function scopeActive($query)

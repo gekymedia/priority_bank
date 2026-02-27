@@ -247,6 +247,40 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a system account (not a real person).
+     */
+    public function isSystem()
+    {
+        return $this->type === 'system';
+    }
+
+    /**
+     * Check if user is a real person (not a system account).
+     */
+    public function isRealUser()
+    {
+        return $this->type === 'user' || $this->type === null;
+    }
+
+    /**
+     * Scope to only include real users (not system accounts).
+     */
+    public function scopeRealUsers($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('type', 'user')->orWhereNull('type');
+        });
+    }
+
+    /**
+     * Scope to only include system accounts.
+     */
+    public function scopeSystemAccounts($query)
+    {
+        return $query->where('type', 'system');
+    }
+
+    /**
      * Check if user is approved.
      */
     public function isApproved()

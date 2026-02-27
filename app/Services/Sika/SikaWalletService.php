@@ -15,14 +15,30 @@ class SikaWalletService
 {
     /**
      * Get the GekyChat merchant user (receives Sika coin purchase funds)
+     * 
+     * First tries to get from systems_registry (preferred), 
+     * then falls back to config value.
      */
     protected function getMerchantUser(): User
     {
+        // Try to get from systems_registry first (preferred method)
+        $gekyChat = \App\Models\SystemRegistry::where('system_id', 'gekychat')
+            ->where('active_status', true)
+            ->first();
+        
+        if ($gekyChat && $gekyChat->user_id) {
+            $merchant = User::find($gekyChat->user_id);
+            if ($merchant) {
+                return $merchant;
+            }
+        }
+        
+        // Fallback to config value
         $merchantUserId = config('services.gekychat.merchant_user_id', 1);
         $merchant = User::find($merchantUserId);
         
         if (!$merchant) {
-            throw new WalletException('GekyChat merchant account not configured', 500);
+            throw new WalletException('GekyChat merchant account not configured. Run: php artisan db:seed --class=SystemAccountsSeeder', 500);
         }
         
         return $merchant;
