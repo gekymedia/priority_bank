@@ -33,6 +33,10 @@
 
                     <!-- Admin Links -->
                     @if(Auth::user()->isAdmin())
+                        <x-nav-link :href="route('admin.sika-wallet.dashboard')" :active="request()->routeIs('admin.sika-wallet.*')">
+                            {{ __('Sika Wallet') }}
+                        </x-nav-link>
+
                         <x-nav-link :href="route('interest-rates.index')" :active="request()->routeIs('interest-rates.*')">
                             {{ __('Interest Rates') }}
                         </x-nav-link>
@@ -126,6 +130,10 @@
             </x-responsive-nav-link>
 
             @if(Auth::user()->isAdmin())
+                <x-responsive-nav-link :href="route('admin.sika-wallet.dashboard')" :active="request()->routeIs('admin.sika-wallet.*')">
+                    {{ __('Sika Wallet') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('loans.index')" :active="request()->routeIs('loans.*')">
                     {{ __('Loans') }}
                 </x-responsive-nav-link>

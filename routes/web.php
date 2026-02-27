@@ -54,6 +54,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('sources', [\App\Http\Controllers\SystemRegistryController::class, 'store'])->name('sources.store');
     Route::put('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'update'])->name('sources.update');
     Route::delete('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'destroy'])->name('sources.destroy');
+    
+    // Sika Wallet Dashboard (GekyChat Integration)
+    Route::get('/sika-wallet', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'index'])->name('sika-wallet.dashboard');
+    Route::get('/sika-wallet/transactions', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'transactions'])->name('sika-wallet.transactions');
+    Route::get('/sika-wallet/wallets', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'wallets'])->name('sika-wallet.wallets');
+    Route::get('/sika-wallet/wallets/{wallet}', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'walletDetails'])->name('sika-wallet.wallet-details');
 });
 
 Route::middleware(['auth', 'approved'])->group(function () {
