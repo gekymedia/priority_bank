@@ -69,4 +69,18 @@ return [
         'project' => env('OPENAI_PROJECT'),
     ],
 
+    'whatsapp' => [
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'api_token' => env('WHATSAPP_API_TOKEN'),
+        'base_url' => env('WHATSAPP_BASE_URL', 'https://graph.facebook.com'),
+    ],
+
+    'arkesel' => [
+        'api_key' => env('ARKESEL_API_KEY'),
+        'url' => env('ARKESEL_API_URL', 'https://sms.arkesel.com/sms/api'),
+        'sender' => env('ARKESEL_SENDER', 'PriorityBank'),
+        'balance_url' => env('ARKESEL_BALANCE_URL', 'https://sms.arkesel.com/api/v2/clients/balance-details'),
+    ],
+
 ];

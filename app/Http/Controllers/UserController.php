@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\UserNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -59,10 +60,11 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:20', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
             'preferred_currency' => ['nullable', 'string', 'max:10'],
+            'send_welcome_message' => ['nullable', 'boolean'],
         ]);
 
         $user = User::create([
@@ -75,8 +77,16 @@ class UserController extends Controller
             'status' => 'approved', // Admin-created users are auto-approved
         ]);
 
+        if ($request->boolean('send_welcome_message')) {
+            app(UserNotificationService::class)->sendWelcomeMessage($user, 'all');
+        }
+
+        $message = 'User created successfully.';
+        if ($request->boolean('send_welcome_message')) {
+            $message .= ' Welcome message sent via all channels.';
+        }
         return redirect()->route('admin.users.index')
-            ->with('success', 'User created successfully.');
+            ->with('success', $message);
     }
 
     /**
@@ -85,6 +95,71 @@ class UserController extends Controller
     public function show(User $user)
     {
         return view('admin.users.show', compact('user'));
+    }
+
+    /**
+     * View statement for a user (transactions + savings, date-ordered).
+     */
+    public function statement(Request $request, User $user)
+    {
+        $startDate = $request->has('start_date') ? $request->date('start_date') : null;
+        $endDate = $request->has('end_date') ? $request->date('end_date') : null;
+
+        $transactions = $user->transactions()
+            ->when($startDate, fn ($q) => $q->where('date', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->where('date', '<=', $endDate))
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(fn ($t) => (object) [
+                'date' => $t->date,
+                'type' => $t->type === 'income' ? 'income' : 'expense',
+                'source' => 'transaction',
+                'description' => $t->description ?: $t->category,
+                'category' => $t->category,
+                'amount' => (float) $t->amount,
+                'reference' => $t->id,
+            ]);
+
+        $savings = $user->savings()
+            ->when($startDate, fn ($q) => $q->where('deposit_date', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->where('deposit_date', '<=', $endDate))
+            ->orderBy('deposit_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(fn ($s) => (object) [
+                'date' => $s->deposit_date,
+                'type' => 'income',
+                'source' => 'savings',
+                'description' => 'Savings deposit' . ($s->reference ? " ({$s->reference})" : ''),
+                'category' => 'Savings',
+                'amount' => (float) $s->amount,
+                'reference' => $s->reference,
+                'status' => $s->status,
+            ]);
+
+        $entries = $transactions->concat($savings)
+            ->sortByDesc(fn ($e) => $e->date->format('Y-m-d') . '-' . ($e->source === 'savings' ? 's' : 't') . '-' . ($e->reference ?? 0))
+            ->values();
+
+        return view('admin.users.statement', compact('user', 'entries', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Send welcome message to the user via selected channel(s).
+     */
+    public function sendWelcomeMessage(Request $request, User $user, UserNotificationService $notificationService)
+    {
+        $request->validate(['channel' => ['required', 'string', Rule::in(['all', 'gekychat', 'sms', 'email', 'whatsapp'])]]);
+        $notificationService->sendWelcomeMessage($user, $request->channel);
+        $channelLabel = match($request->channel) {
+            'all' => 'All channels',
+            'gekychat' => 'GekyChat',
+            'sms' => 'SMS',
+            'email' => 'Email',
+            'whatsapp' => 'WhatsApp',
+        };
+        return redirect()->back()->with('success', "Welcome message sent to {$user->name} via {$channelLabel}.");
     }
 
     /**
@@ -103,7 +178,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
             'preferred_currency' => ['nullable', 'string', 'max:10'],

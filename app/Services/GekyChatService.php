@@ -14,29 +14,43 @@ use Illuminate\Support\Facades\Cache;
  */
 class GekyChatService
 {
-    protected string $baseUrl;
-    protected ?string $clientId;
-    protected ?string $clientSecret;
     protected ?string $accessToken = null;
-    protected int $systemBotUserId;
+
+    /** Default base URL: .test for local, https://api.gekychat.com for production. */
+    protected static function defaultBaseUrl(): string
+    {
+        return env('APP_ENV') === 'local'
+            ? 'http://api.gekychat.test'
+            : 'https://api.gekychat.com';
+    }
+
+    /** Resolve at call time so NotificationSetting::applyToConfig() is respected. */
+    protected function getBaseUrl(): string
+    {
+        return rtrim(config('services.gekychat.base_url', self::defaultBaseUrl()), '/');
+    }
+
+    protected function getClientId(): ?string
+    {
+        return config('services.gekychat.client_id');
+    }
+
+    protected function getClientSecret(): ?string
+    {
+        return config('services.gekychat.client_secret');
+    }
+
+    protected function getSystemBotUserId(): int
+    {
+        return (int) config('services.gekychat.system_bot_user_id', 0);
+    }
 
     public function __construct()
     {
-        // Default to api subdomain - platform API routes are on api.gekychat.test
-        // Routes are at: api.gekychat.test/platform/oauth/token (no /api prefix)
-        $defaultUrl = env('APP_ENV') === 'local' 
-            ? 'http://api.gekychat.test' 
-            : 'https://api.gekychat.com';
-        $this->baseUrl = rtrim(config('services.gekychat.base_url', $defaultUrl), '/');
-        $this->clientId = config('services.gekychat.client_id');
-        $this->clientSecret = config('services.gekychat.client_secret');
-        $this->systemBotUserId = (int) config('services.gekychat.system_bot_user_id', 0);
-        
-        // Validate required credentials
-        if (empty($this->clientId) || empty($this->clientSecret)) {
+        if (empty($this->getClientId()) || empty($this->getClientSecret())) {
             Log::warning('GekyChat credentials not configured', [
-                'has_client_id' => !empty($this->clientId),
-                'has_client_secret' => !empty($this->clientSecret),
+                'has_client_id' => !empty($this->getClientId()),
+                'has_client_secret' => !empty($this->getClientSecret()),
             ]);
         }
     }
@@ -53,10 +67,11 @@ class GekyChatService
     public function sendMessageByPhone(string $phoneNumber, string $message, array $metadata = []): array
     {
         try {
+            $baseUrl = $this->getBaseUrl();
             Log::info('GekyChat sendMessageByPhone: Starting', [
                 'phone' => $phoneNumber,
                 'message_length' => strlen($message),
-                'base_url' => $this->baseUrl,
+                'base_url' => $baseUrl,
             ]);
             
             // Get or refresh access token
@@ -65,7 +80,7 @@ class GekyChatService
                 $error = 'Failed to obtain access token. Check logs for OAuth details.';
                 Log::error('GekyChat sendMessageByPhone: Token failed', [
                     'phone' => $phoneNumber,
-                    'base_url' => $this->baseUrl,
+                    'base_url' => $baseUrl,
                 ]);
                 return [
                     'success' => false,
@@ -77,13 +92,14 @@ class GekyChatService
             $normalizedPhone = $this->normalizePhone($phoneNumber);
 
             // Try simplified endpoint first (works for privileged clients)
+            $baseUrl = $this->getBaseUrl();
             $response = Http::withToken($token)
                 ->timeout(15)
-                ->post("{$this->baseUrl}/platform/messages/send-to-phone", [
+                ->post("{$baseUrl}/platform/messages/send-to-phone", [
                     'phone' => $normalizedPhone,
                     'body' => $message,
                     'metadata' => $metadata ?? [],
-                    'bot_user_id' => $this->systemBotUserId > 0 ? $this->systemBotUserId : null,
+                    'bot_user_id' => $this->getSystemBotUserId() > 0 ? $this->getSystemBotUserId() : null,
                 ]);
 
             if ($response->successful()) {
@@ -156,42 +172,45 @@ class GekyChatService
      */
     protected function getAccessToken(): ?string
     {
-        // Check cache first (use client_id in key to avoid conflicts between systems)
-        $cacheKey = 'gekychat_access_token_' . md5($this->clientId ?? 'default');
+        $baseUrl = $this->getBaseUrl();
+        $clientId = $this->getClientId();
+        $clientSecret = $this->getClientSecret();
+        // Cache key includes base_url so switching .test vs .com doesn't reuse wrong token
+        $cacheKey = 'gekychat_access_token_' . md5($baseUrl . '|' . ($clientId ?? 'default'));
         $cached = Cache::get($cacheKey);
         if ($cached) {
             Log::debug('GekyChat OAuth: Using cached token', [
-                'base_url' => $this->baseUrl,
-                'client_id' => substr($this->clientId ?? '', 0, 10) . '...',
+                'base_url' => $baseUrl,
+                'client_id' => substr($clientId ?? '', 0, 10) . '...',
             ]);
             return $cached;
         }
 
         // Validate credentials are set
-        if (empty($this->clientId) || empty($this->clientSecret)) {
+        if (empty($clientId) || empty($clientSecret)) {
             Log::error('GekyChat OAuth: Missing credentials', [
-                'has_client_id' => !empty($this->clientId),
-                'has_client_secret' => !empty($this->clientSecret),
-                'base_url' => $this->baseUrl,
+                'has_client_id' => !empty($clientId),
+                'has_client_secret' => !empty($clientSecret),
+                'base_url' => $baseUrl,
             ]);
             return null;
         }
 
         try {
             // Routes are defined with prefix('platform'), so endpoint is /platform/oauth/token
-            $endpoint = "{$this->baseUrl}/platform/oauth/token";
+            $endpoint = "{$baseUrl}/platform/oauth/token";
             
             $payload = [
-                'client_id' => $this->clientId,
-                'client_secret' => $this->clientSecret,
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
                 'grant_type' => 'client_credentials',
             ];
             
             Log::info('GekyChat OAuth: Requesting token', [
                 'endpoint' => $endpoint,
-                'base_url' => $this->baseUrl,
-                'client_id' => substr($this->clientId ?? '', 0, 10) . '...',
-                'has_client_secret' => !empty($this->clientSecret),
+                'base_url' => $baseUrl,
+                'client_id' => substr($clientId ?? '', 0, 10) . '...',
+                'has_client_secret' => !empty($clientSecret),
             ]);
 
             $response = Http::asForm()
@@ -207,9 +226,7 @@ class GekyChatService
                 $token = $data['access_token'] ?? null;
                 
                 if ($token) {
-                    // Cache token for 1 hour (adjust based on actual expiry)
-                    // Use client_id in key to avoid conflicts
-                    $cacheKey = 'gekychat_access_token_' . md5($this->clientId ?? 'default');
+                    // Cache token for 1 hour (key includes base_url + client_id)
                     Cache::put($cacheKey, $token, now()->addHour());
                     
                     Log::info('GekyChat OAuth: Token obtained successfully', [
@@ -302,7 +319,7 @@ class GekyChatService
             // Try to find user by phone
             $response = Http::withToken($token)
                 ->timeout(10)
-                ->get("{$this->baseUrl}/platform/users/by-phone", [
+                ->get("{$this->getBaseUrl()}/platform/users/by-phone", [
                     'phone' => $normalizedPhone
                 ]);
 
@@ -364,9 +381,9 @@ class GekyChatService
             // Try to find existing conversation
             $response = Http::withToken($token)
                 ->timeout(10)
-                ->get("{$this->baseUrl}/platform/conversations/find-or-create", [
+                ->get("{$this->getBaseUrl()}/platform/conversations/find-or-create", [
                     'user_id' => $userId,
-                    'bot_user_id' => $this->systemBotUserId,
+                    'bot_user_id' => $this->getSystemBotUserId(),
                 ]);
 
             if ($response->successful()) {
@@ -408,7 +425,7 @@ class GekyChatService
 
             $response = Http::withToken($token)
                 ->timeout(15)
-                ->post("{$this->baseUrl}/platform/messages/send", [
+                ->post("{$this->getBaseUrl()}/platform/messages/send", [
                     'conversation_id' => $conversationId,
                     'body' => $message,
                     'metadata' => $metadata ?? [],

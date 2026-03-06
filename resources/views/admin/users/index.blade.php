@@ -145,9 +145,19 @@
                                             <i class="fas fa-user-secret"></i>
                                         </button>
                                     </form>
+                                    <form action="{{ route('admin.users.send-welcome-message', $user) }}" method="POST" class="inline" onsubmit="return confirm('Send welcome message via all channels (SMS, Email, GekyChat, WhatsApp) to this user?');">
+                                        @csrf
+                                        <input type="hidden" name="channel" value="all">
+                                        <button type="submit" class="text-green-600 hover:text-green-900" title="Send welcome (multi channel)">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </form>
                                 @endif
                                 <a href="{{ route('admin.users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="View">
                                     <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ route('admin.users.statement', $user) }}" class="text-teal-600 hover:text-teal-900" title="View statement">
+                                    <i class="fas fa-file-alt"></i>
                                 </a>
                                 <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-600 hover:text-blue-900" title="Edit">
                                     <i class="fas fa-edit"></i>

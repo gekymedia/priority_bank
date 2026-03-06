@@ -53,7 +53,10 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex space-x-4">
+            <div class="mt-6 flex flex-wrap gap-4">
+                <a href="{{ route('admin.users.statement', $user) }}" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+                    <i class="fas fa-file-alt mr-2"></i>View statement
+                </a>
                 <a href="{{ route('admin.users.edit', $user) }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                     <i class="fas fa-edit mr-2"></i>Edit User
                 </a>
@@ -67,6 +70,26 @@
                         </button>
                     </form>
                 @endif
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="text-lg font-semibold mb-2">Send welcome message</h3>
+                <form action="{{ route('admin.users.send-welcome-message', $user) }}" method="POST" class="flex flex-wrap items-end gap-3">
+                    @csrf
+                    <div>
+                        <label for="welcome_channel" class="block text-sm font-medium text-gray-700 mb-1">Channel</label>
+                        <select name="channel" id="welcome_channel" class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="all">All</option>
+                            <option value="gekychat">GekyChat</option>
+                            <option value="sms">SMS</option>
+                            <option value="email">Email</option>
+                            <option value="whatsapp">WhatsApp</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        <i class="fas fa-paper-plane mr-2"></i>Send welcome
+                    </button>
+                </form>
             </div>
         </div>
 

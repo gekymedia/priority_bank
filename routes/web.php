@@ -45,6 +45,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
     Route::post('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
     Route::post('users/{user}/impersonate', [\App\Http\Controllers\UserController::class, 'impersonate'])->name('users.impersonate');
+    Route::post('users/{user}/send-welcome-message', [\App\Http\Controllers\UserController::class, 'sendWelcomeMessage'])->name('users.send-welcome-message');
+    Route::get('users/{user}/statement', [\App\Http\Controllers\UserController::class, 'statement'])->name('users.statement');
     
     // Fund Sources
     Route::get('/fund-sources', [\App\Http\Controllers\FundSourceController::class, 'index'])->name('fund-sources.index');
@@ -55,6 +57,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'update'])->name('sources.update');
     Route::delete('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'destroy'])->name('sources.destroy');
     
+    // Notification Settings (multi-channel: GekyChat, WhatsApp, Email, SMS)
+    Route::get('/notification-settings', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'index'])->name('notification-settings.index');
+    Route::get('/notification-settings/sms-balance', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'smsBalance'])->name('notification-settings.sms-balance');
+    Route::put('/notification-settings', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'update'])->name('notification-settings.update');
+    Route::post('/notification-settings/test', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'test'])->name('notification-settings.test');
+
     // Sika Wallet Dashboard (GekyChat Integration)
     Route::get('/sika-wallet', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'index'])->name('sika-wallet.dashboard');
     Route::get('/sika-wallet/transactions', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'transactions'])->name('sika-wallet.transactions');

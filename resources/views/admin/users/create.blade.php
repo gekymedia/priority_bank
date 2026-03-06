@@ -32,9 +32,9 @@
             </div>
 
             <div class="mb-4">
-                <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone (Optional)</label>
+                <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone <span class="text-red-500">*</span></label>
                 <input type="text" name="phone" id="phone" value="{{ old('phone') }}" 
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('phone') border-red-500 @enderror">
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('phone') border-red-500 @enderror" required>
                 @error('phone')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -76,6 +76,15 @@
                     <option value="USD" {{ old('preferred_currency') === 'USD' ? 'selected' : '' }}>USD (US Dollars)</option>
                     <option value="EUR" {{ old('preferred_currency') === 'EUR' ? 'selected' : '' }}>EUR (Euros)</option>
                 </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="flex items-center cursor-pointer">
+                    <input type="hidden" name="send_welcome_message" value="0">
+                    <input type="checkbox" name="send_welcome_message" value="1" {{ old('send_welcome_message') ? 'checked' : '' }}
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <span class="ml-2 text-sm text-gray-700">Send welcome message (SMS, Email, GekyChat, WhatsApp) after creating user</span>
+                </label>
             </div>
 
             <div class="flex justify-end space-x-4">

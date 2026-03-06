@@ -9,34 +9,57 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Drop the foreign key constraint and modify the column
-        Schema::table('sika_wallets', function (Blueprint $table) {
-            // Drop the foreign key constraint first
-            $table->dropForeign(['user_id']);
-            
-            // Rename user_id to external_user_id
-            $table->renameColumn('user_id', 'external_user_id');
-        });
+        // sika_wallets: only modify if still using user_id (idempotent)
+        if (Schema::hasTable('sika_wallets')) {
+            $walletColumns = Schema::getColumnListing('sika_wallets');
+            if (in_array('user_id', $walletColumns) && !in_array('external_user_id', $walletColumns)) {
+                try {
+                    Schema::table('sika_wallets', function (Blueprint $table) {
+                        $table->dropForeign(['user_id']);
+                    });
+                } catch (\Throwable $e) {
+                    // FK may already be dropped
+                }
+                Schema::table('sika_wallets', function (Blueprint $table) {
+                    $table->renameColumn('user_id', 'external_user_id');
+                });
+            }
+            if (!in_array('source', $walletColumns)) {
+                Schema::table('sika_wallets', function (Blueprint $table) {
+                    $table->string('source', 50)->default('gekychat')->after('external_user_id');
+                });
+            }
+            // Drop old unique index if it exists (single column), add composite if missing
+            try {
+                Schema::table('sika_wallets', function (Blueprint $table) {
+                    $table->dropUnique(['external_user_id']);
+                });
+            } catch (\Throwable $e) {
+                // Index may already be dropped or named differently
+            }
+            try {
+                Schema::table('sika_wallets', function (Blueprint $table) {
+                    $table->unique(['external_user_id', 'source']);
+                });
+            } catch (\Throwable $e) {
+                // Composite unique may already exist
+            }
+        }
 
-        Schema::table('sika_wallets', function (Blueprint $table) {
-            // Add source column to identify which system the user is from
-            $table->string('source', 50)->default('gekychat')->after('external_user_id');
-            
-            // Drop the old unique index
-            $table->dropUnique(['external_user_id']);
-            
-            // Create a composite unique index on external_user_id + source
-            $table->unique(['external_user_id', 'source']);
-        });
-
-        // Also update the transactions table
-        Schema::table('sika_wallet_transactions', function (Blueprint $table) {
-            $table->renameColumn('user_id', 'external_user_id');
-        });
-
-        Schema::table('sika_wallet_transactions', function (Blueprint $table) {
-            $table->string('source', 50)->default('gekychat')->after('external_user_id');
-        });
+        // sika_wallet_transactions: only modify if still using user_id (idempotent)
+        if (Schema::hasTable('sika_wallet_transactions')) {
+            $txColumns = Schema::getColumnListing('sika_wallet_transactions');
+            if (in_array('user_id', $txColumns) && !in_array('external_user_id', $txColumns)) {
+                Schema::table('sika_wallet_transactions', function (Blueprint $table) {
+                    $table->renameColumn('user_id', 'external_user_id');
+                });
+            }
+            if (!in_array('source', $txColumns)) {
+                Schema::table('sika_wallet_transactions', function (Blueprint $table) {
+                    $table->string('source', 50)->default('gekychat')->after('external_user_id');
+                });
+            }
+        }
     }
 
     public function down(): void

@@ -652,6 +652,12 @@
                         <span>Source Keys</span>
                     </a>
                 </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('admin.notification-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.notification-settings.*') ? 'active' : '' }}">
+                        <i class="fas fa-bell"></i>
+                        <span>Notification Settings</span>
+                    </a>
+                </div>
             @endif
             
             <div class="sidebar-menu-item" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(79, 70, 229, 0.1);">
@@ -1309,48 +1315,54 @@
                             'Accept': 'application/json'
                         }
                     })
-                    .then(response => {
-                        // Check if response is ok (status 200-299)
+                    .then(function(response) {
+                        const contentType = response.headers.get('content-type');
+                        const isJson = contentType && contentType.indexOf('application/json') !== -1;
                         if (!response.ok) {
-                            // Parse error response
-                            return response.json().then(data => {
-                                throw { status: response.status, data: data };
-                            });
+                            if (isJson) {
+                                return response.json().then(function(data) {
+                                    throw { status: response.status, data: data };
+                                });
+                            }
+                            if (response.status === 419) {
+                                throw { status: 419, data: { message: 'Session expired. Please refresh the page and try again.' } };
+                            }
+                            throw { status: response.status, data: { message: 'Request failed. Please refresh and try again.' } };
                         }
-                        return response.json();
+                        if (isJson) {
+                            return response.json();
+                        }
+                        throw { status: response.status, data: { message: 'Invalid response. The transaction may have been saved—please refresh the page.' } };
                     })
-                    .then(data => {
-                        if (data.success) {
-                            // Show success notification
+                    .then(function(data) {
+                        if (data && data.success) {
                             showNotification(data.message || 'Transaction saved successfully!');
-                            
-                            // Close modal
                             closeModal();
-                            
-                            // Optionally reload the page after a short delay to show the new transaction
-                            // Remove the setTimeout below if you don't want automatic page reload
-                            // setTimeout(() => {
-                            //     window.location.reload();
-                            // }, 1500);
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 800);
+                        } else {
+                            showNotification('An error occurred. Please try again.', 'error');
+                            if (submitBtn) submitBtn.disabled = false;
+                            if (submitBtnText) submitBtnText.style.display = 'inline';
+                            if (submitBtnLoader) submitBtnLoader.style.display = 'none';
                         }
                     })
-                    .catch(error => {
+                    .catch(function(error) {
                         console.error('Error:', error);
-                        
-                        // Handle validation errors
-                        if (error.data && error.data.errors) {
-                            Object.keys(error.data.errors).forEach(field => {
+                        if (error && error.data && error.data.errors) {
+                            Object.keys(error.data.errors).forEach(function(field) {
                                 const errorEl = document.getElementById('error_' + field);
                                 if (errorEl) {
                                     errorEl.textContent = error.data.errors[field][0];
                                     errorEl.style.display = 'block';
                                 }
                             });
+                            showNotification(error.data.message || 'Please fix the errors above.', 'error');
                         } else {
-                            showNotification('An error occurred. Please try again.', 'error');
+                            const msg = (error && error.data && error.data.message) ? error.data.message : 'An error occurred. Please try again.';
+                            showNotification(msg, 'error');
                         }
-                        
-                        // Re-enable submit button
                         if (submitBtn) submitBtn.disabled = false;
                         if (submitBtnText) submitBtnText.style.display = 'inline';
                         if (submitBtnLoader) submitBtnLoader.style.display = 'none';

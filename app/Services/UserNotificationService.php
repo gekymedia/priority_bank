@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\NotificationSetting;
 use App\Jobs\SendNotificationMessage;
 use App\Services\GekyChatService;
 use Illuminate\Support\Facades\Log;
@@ -31,9 +32,10 @@ class UserNotificationService
      */
     public function notifyUser(User $user, string $message, ?string $subject = null, array $metadata = []): void
     {
+        NotificationSetting::applyToConfig();
         try {
-            // Email notification
-            if ($user->notification_email && $user->email) {
+            // Email notification (respect admin channel toggle)
+            if (NotificationSetting::channelEnabled('email') && $user->notification_email && $user->email) {
                 try {
                     SendNotificationMessage::dispatch('email', $user->email, $message, $subject ?: 'Priority Bank Notification');
                     Log::info('User email notification queued', [
@@ -64,8 +66,8 @@ class UserNotificationService
                 }
             }
 
-            // SMS notification
-            if ($user->notification_sms && $user->phone) {
+            // SMS notification (respect admin channel toggle)
+            if (NotificationSetting::channelEnabled('sms') && $user->notification_sms && $user->phone) {
                 try {
                     SendNotificationMessage::dispatch('sms', $user->phone, $message);
                     Log::info('User SMS notification queued', [
@@ -80,8 +82,8 @@ class UserNotificationService
                 }
             }
 
-            // WhatsApp notification
-            if ($user->notification_whatsapp && $user->phone) {
+            // WhatsApp notification (respect admin channel toggle)
+            if (NotificationSetting::channelEnabled('whatsapp') && $user->notification_whatsapp && $user->phone) {
                 try {
                     // Check if WhatsApp service is available
                     if (class_exists(\App\Services\WhatsAppService::class)) {
@@ -104,8 +106,8 @@ class UserNotificationService
                 }
             }
 
-            // GekyChat notification
-            if ($user->notification_gekychat && $user->phone) {
+            // GekyChat notification (respect admin channel toggle)
+            if (NotificationSetting::channelEnabled('gekychat') && $user->notification_gekychat && $user->phone) {
                 try {
                     $result = $this->gekyChatService->sendMessageByPhone($user->phone, $message, $metadata);
                     if ($result['success'] ?? false) {
@@ -134,6 +136,64 @@ class UserNotificationService
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+        }
+    }
+
+    /**
+     * Send a welcome message to the user via selected channel(s).
+     * Used by admin from user show page. Channel: all, gekychat, sms, email, whatsapp.
+     */
+    public function sendWelcomeMessage(User $user, string $channel): void
+    {
+        NotificationSetting::applyToConfig();
+        $message = 'Welcome to Priority Bank! We\'re glad to have you. Log in to your dashboard to manage your savings and loans.';
+        $subject = 'Welcome to Priority Bank';
+
+        $channels = $channel === 'all'
+            ? ['email', 'sms', 'whatsapp', 'gekychat']
+            : [$channel];
+
+        foreach ($channels as $ch) {
+            if (!NotificationSetting::channelEnabled($ch)) {
+                continue;
+            }
+            if ($ch === 'email') {
+                if (!$user->email) continue;
+                try {
+                    SendNotificationMessage::dispatch('email', $user->email, $message, $subject);
+                } catch (\Throwable $e) {
+                    Log::warning('Welcome email failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+                continue;
+            }
+            if ($ch === 'sms') {
+                if (!$user->phone) continue;
+                try {
+                    SendNotificationMessage::dispatch('sms', $user->phone, $message);
+                } catch (\Throwable $e) {
+                    Log::warning('Welcome SMS failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+                continue;
+            }
+            if ($ch === 'whatsapp') {
+                if (!$user->phone) continue;
+                try {
+                    if (class_exists(\App\Services\WhatsAppService::class)) {
+                        app(\App\Services\WhatsAppService::class)->sendMessage($user->phone, $message);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Welcome WhatsApp failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+                continue;
+            }
+            if ($ch === 'gekychat') {
+                if (!$user->phone) continue;
+                try {
+                    $this->gekyChatService->sendMessageByPhone($user->phone, $message, []);
+                } catch (\Throwable $e) {
+                    Log::warning('Welcome GekyChat failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+            }
         }
     }
 
