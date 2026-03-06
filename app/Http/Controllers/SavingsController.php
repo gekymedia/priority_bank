@@ -42,7 +42,8 @@ class SavingsController extends Controller
      */
     public function create()
     {
-        return view('savings.create');
+        $isOnlinePaymentAvailable = $this->paymentService->isOnlinePaymentAvailable();
+        return view('savings.create', compact('isOnlinePaymentAvailable'));
     }
 
     /**

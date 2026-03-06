@@ -1,62 +1,68 @@
-const CACHE_NAME = 'pbg-finance-v2';
-const ASSETS_TO_CACHE = [
-  '/',
+// Cache version - bump when you want to invalidate all caches
+const CACHE_VERSION = 'pbg-finance-v3';
+// Only pre-cache static assets used for offline fallback (no HTML pages - those stay network-first)
+const PRECACHE_ASSETS = [
   '/offline.html',
   '/pbg_logo_192.png',
   '/pbg_logo_512.png',
-  '/manifest.json',
-  '/css/app.css',
-  '/js/app.js',
-  '/login',
-  '/register',
-  '/dashboard',
-  '/incomes',
-  '/expenses',
-  '/loans',
-  '/accounts',
-  '/budgets'
-  // Additional pages can be cached here
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Cache opened');
-        // Only cache existing files
-        return Promise.all(
-          ASSETS_TO_CACHE.map(asset => {
-            return cache.add(asset).catch(e => {
-              console.log(`Skipping ${asset}`, e);
-            });
-          })
-        );
-      })
+    caches.open(CACHE_VERSION)
+      .then(cache => cache.addAll(PRECACHE_ASSETS.map(url => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+      .catch(err => console.warn('SW install precache failed', err))
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(key => key !== CACHE_VERSION).map(key => caches.delete(key)))
+    ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests and external URLs
-  if (event.request.method !== 'GET' || 
-      !event.request.url.startsWith(self.location.origin)) {
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        // Return cached response if found
-        if (cachedResponse) return cachedResponse;
-        
-        // Otherwise fetch from network
-        return fetch(event.request)
-          .catch(() => {
-            // If offline and navigation request, show offline page
-            if (event.request.mode === 'navigate') {
-              return caches.match('/offline.html');
-            }
-            return new Response('Offline - no cached content');
-          });
+  const isNavigation = event.request.mode === 'navigate' || event.request.destination === 'document';
+
+  // HTML / navigation: always try network first so pages are never stale. Use cache only when offline.
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => response)
+        .catch(() => caches.match(event.request).then(r => r || caches.match('/offline.html')))
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images, fonts): cache-first for speed; URLs are versioned by build so no stale assets
+  const url = new URL(event.request.url);
+  const isStaticAsset = /\.(js|css|woff2?|png|jpg|jpeg|gif|ico|svg|webp)(\?.*)?$/i.test(url.pathname)
+    || url.pathname.startsWith('/build/');
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        });
       })
-  );
+    );
+    return;
+  }
+
+  // Other same-origin GET (e.g. API): network first
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });

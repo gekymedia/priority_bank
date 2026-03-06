@@ -16,6 +16,16 @@
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-6">
+            @if($errors->any())
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm font-medium text-red-800 mb-2">Please fix the following errors:</p>
+                    <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <form action="{{ route('savings.store') }}" method="POST">
                 @csrf
 
@@ -60,7 +70,7 @@
                 </div>
 
                 <!-- Notes -->
-                <div class="mb-6">
+                <div class="mb-4">
                     <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
                         Notes (Optional)
                     </label>
@@ -68,6 +78,53 @@
                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 @error('notes') border-red-500 @enderror"
                               placeholder="Any additional notes about this deposit...">{{ old('notes') }}</textarea>
                     @error('notes')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Payment Method -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label>
+                    <div class="space-y-2">
+                        <label class="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="direct" {{ old('payment_method', 'direct') === 'direct' ? 'checked' : '' }} class="mt-1 mr-3" required>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Direct Deposit (Bank/MoMo)</div>
+                                <div class="text-sm text-gray-500">Send money directly to bank account or MoMo. Admin will verify and approve.</div>
+                                <div class="text-sm font-semibold text-gray-700 mt-1">
+                                    <i class="fas fa-phone mr-1"></i> 0245790807 | PSA PRIORITY SOLUTIONS (EMMANUEL GYABAA YEBOAH)
+                                </div>
+                            </div>
+                        </label>
+                        @if(isset($isOnlinePaymentAvailable) && $isOnlinePaymentAvailable)
+                            @php
+                                $paystackAvailable = !empty(config('services.paystack.secret_key'));
+                                $hubtelAvailable = !empty(config('services.hubtel.api_key') ?? config('services.hubtel.client_id')) && !empty(config('services.hubtel.api_secret') ?? config('services.hubtel.client_secret'));
+                            @endphp
+                            @if($paystackAvailable)
+                                <label class="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="radio" name="payment_method" value="paystack" {{ old('payment_method') === 'paystack' ? 'checked' : '' }} class="mt-1 mr-3" required>
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900">Pay Online - Paystack</div>
+                                        <div class="text-sm text-gray-500">Pay instantly using card, mobile money, or bank transfer. Instant approval.</div>
+                                    </div>
+                                </label>
+                            @endif
+                            @if($hubtelAvailable)
+                                <label class="flex items-start p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="radio" name="payment_method" value="hubtel" {{ old('payment_method') === 'hubtel' ? 'checked' : '' }} class="mt-1 mr-3" required>
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900">Pay Online - Hubtel</div>
+                                        <div class="text-sm text-gray-500">Pay instantly using Hubtel wallet or card. Instant approval.</div>
+                                    </div>
+                                </label>
+                            @endif
+                        @endif
+                    </div>
+                    @error('payment_method')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    @error('payment')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
