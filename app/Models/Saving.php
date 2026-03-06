@@ -69,4 +69,13 @@ class Saving extends Model
                     ->where('status', 'successful')
                     ->sum('amount');
     }
+
+    /**
+     * Scope for savings pending admin approval (e.g. direct deposits).
+     */
+    public function scopePendingApproval($query)
+    {
+        return $query->where('approval_status', 'pending')
+            ->where('status', 'pending');
+    }
 }

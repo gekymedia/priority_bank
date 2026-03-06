@@ -584,6 +584,12 @@
                         <span>User Management</span>
                     </a>
                 </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('savings.index', ['approval' => 'pending']) }}" class="sidebar-link {{ request()->routeIs('savings.*') && request()->get('approval') === 'pending' ? 'active' : '' }}">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Pre-approval</span>
+                    </a>
+                </div>
             @else
                 <div class="sidebar-menu-item">
                     <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">

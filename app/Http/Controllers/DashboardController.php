@@ -77,6 +77,10 @@ class DashboardController extends Controller
         $pendingDepositsList = \App\Models\Deposit::pending()->with('user')->latest()->take(5)->get();
         $pendingDepositsCount = \App\Models\Deposit::pending()->count();
 
+        // Get pending savings (direct deposits awaiting admin approval)
+        $pendingSavingsList = Saving::pendingApproval()->with('user')->latest()->take(5)->get();
+        $pendingSavingsCount = Saving::pendingApproval()->count();
+
         // Charts & Recent - Admin sees all transactions
         $incomeExpenseChart = $this->generateIncomeExpenseChart(null, $thirtyDaysAgo);
         $expenseCategoryChart = $this->generateExpenseCategoryChart(null, $thirtyDaysAgo);
@@ -100,7 +104,8 @@ class DashboardController extends Controller
             'netBalance', 'incomeExpenseChart', 'expenseCategoryChart',
             'recentTransactions', 'aiInsights', 'groupFund', 'pendingLoanRequests',
             'totalCreditUnionLoans', 'pendingUsersCount', 'pendingLoanRequestsList',
-            'pendingDepositsList', 'pendingDepositsCount'
+            'pendingDepositsList', 'pendingDepositsCount',
+            'pendingSavingsList', 'pendingSavingsCount'
         ));
     }
 

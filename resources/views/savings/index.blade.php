@@ -6,8 +6,14 @@
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-bold">Savings</h1>
-            <p class="text-gray-600 mt-1">Manage your savings deposits and withdrawals</p>
+            <h1 class="text-3xl font-bold">Savings{{ request('approval') === 'pending' ? ' – Pre-approval' : '' }}</h1>
+            <p class="text-gray-600 mt-1">
+                @if(request('approval') === 'pending')
+                    Direct deposits (Bank/MoMo) awaiting your approval. Approve or mark as failed after verifying the transaction.
+                @else
+                    Manage your savings deposits and withdrawals
+                @endif
+            </p>
         </div>
         @if(!Auth::user()->isAdmin())
             <div class="flex gap-3">
@@ -23,6 +29,11 @@
                 </button>
             </div>
         @else
+            @if(request('approval') === 'pending')
+                <a href="{{ route('savings.index') }}" class="text-gray-600 hover:text-gray-900 mr-3">
+                    ← View all savings
+                </a>
+            @endif
             <a href="{{ route('savings.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">
                 Add New Savings
             </a>

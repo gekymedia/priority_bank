@@ -92,7 +92,7 @@
     </div>
 
     <!-- Credit Union Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
             <div class="flex justify-between items-start">
                 <div>
@@ -142,7 +142,95 @@
             </div>
             <p class="text-sm text-gray-500 mt-2">Active group loans</p>
         </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-teal-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">Pending Savings (Pre-approval)</p>
+                    <h2 class="text-2xl font-bold mt-2">{{ $pendingSavingsCount }}</h2>
+                </div>
+                <div class="bg-teal-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Direct deposits awaiting approval</p>
+            @if($pendingSavingsCount > 0)
+                <a href="{{ route('savings.index', ['approval' => 'pending']) }}" class="text-teal-600 hover:text-teal-800 text-sm font-medium mt-2 inline-block">
+                    Review & Approve →
+                </a>
+            @endif
+        </div>
     </div>
+
+    <!-- Pending Savings (Pre-approval) -->
+    @if(isset($pendingSavingsList) && $pendingSavingsList->count() > 0)
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+        <div class="p-6 border-b border-gray-200 bg-teal-50">
+            <h3 class="text-lg font-semibold flex items-center">
+                <i class="fas fa-piggy-bank text-teal-500 mr-2"></i>
+                Pending Savings – Pre-approval ({{ $pendingSavingsList->count() }})
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">Direct deposits (Bank/MoMo) awaiting your approval</p>
+        </div>
+        <div class="divide-y divide-gray-200">
+            @foreach($pendingSavingsList as $saving)
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <p class="font-medium text-gray-900">{{ $saving->user->name }}</p>
+                                <p class="text-sm text-gray-500">{{ $saving->user->email }}</p>
+                            </div>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-teal-100 text-teal-800">
+                                Pending
+                            </span>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Amount:</span>
+                                <span class="font-semibold text-gray-900 ml-1">GHS {{ number_format($saving->amount, 2) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Deposit date:</span>
+                                <span class="font-semibold text-gray-900 ml-1">{{ $saving->deposit_date->format('M d, Y') }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Reference:</span>
+                                <span class="font-semibold text-gray-900 ml-1">{{ $saving->reference ?? '–' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Method:</span>
+                                <span class="font-semibold text-gray-900 ml-1">{{ ucfirst($saving->payment_method) }}</span>
+                            </div>
+                        </div>
+                        @if($saving->notes)
+                        <div class="mt-2">
+                            <span class="text-gray-500 text-sm">Notes:</span>
+                            <p class="text-sm text-gray-700 mt-1">{{ $saving->notes }}</p>
+                        </div>
+                        @endif
+                    </div>
+                    <div class="ml-4 flex flex-col gap-2">
+                        <a href="{{ route('savings.show', $saving) }}" class="text-teal-600 hover:text-teal-900 text-sm font-medium">
+                            <i class="fas fa-eye mr-1"></i> Review & Approve
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @if($pendingSavingsCount > $pendingSavingsList->count())
+        <div class="p-4 bg-gray-50 text-center">
+            <a href="{{ route('savings.index', ['approval' => 'pending']) }}" class="text-teal-600 hover:text-teal-800 font-medium">
+                View All {{ $pendingSavingsCount }} Pending Savings →
+            </a>
+        </div>
+        @endif
+    </div>
+    @endif
 
     <!-- Pending Loan Requests Notifications -->
     @if(isset($pendingLoanRequestsList) && $pendingLoanRequestsList->count() > 0)

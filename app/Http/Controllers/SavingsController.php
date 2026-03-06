@@ -20,12 +20,16 @@ class SavingsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
         if ($user->isAdmin()) {
-            $savings = Saving::with('user')->latest()->paginate(20);
+            $query = Saving::with('user')->latest();
+            if ($request->get('approval') === 'pending') {
+                $query->pendingApproval();
+            }
+            $savings = $query->paginate(20)->withQueryString();
         } else {
             $savings = Saving::where('user_id', $user->id)->latest()->paginate(20);
         }
