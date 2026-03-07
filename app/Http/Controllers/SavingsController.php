@@ -557,7 +557,7 @@ class SavingsController extends Controller
             'status' => 'successful',
         ]);
 
-        // Create income transaction against Priority Bank source
+        // Create income transaction against Priority Bank source (include deposit note for "view more")
         $priorityBank = \App\Models\SystemRegistry::where('system_id', 'priority_bank')->first();
         if ($priorityBank) {
             \App\Models\Transaction::create([
@@ -567,6 +567,7 @@ class SavingsController extends Controller
                 'amount' => $saving->amount,
                 'date' => $saving->deposit_date,
                 'description' => "Savings deposit from {$saving->user->name} - #{$saving->id} (Direct Deposit)",
+                'notes' => $saving->notes,
                 'external_system_id' => $priorityBank->id,
             ]);
         }
