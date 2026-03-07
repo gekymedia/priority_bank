@@ -85,6 +85,7 @@ Route::middleware(['auth', 'approved'])->group(function () {
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile-photo/{path}', [\App\Http\Controllers\ProfileController::class, 'showPhoto'])->name('profile.photo')->where('path', 'profile-photos/.+');
 
     // API Key Management routes
     Route::get('/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');

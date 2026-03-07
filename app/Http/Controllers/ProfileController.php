@@ -5,12 +5,43 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+
 class ProfileController extends Controller
 {
+    /**
+     * Serve profile photo from storage (avoids 403 when public/storage is blocked on server).
+     */
+    public function showPhoto(string $path): Response|RedirectResponse
+    {
+        // Only allow paths under profile-photos/ and block path traversal
+        $path = ltrim($path, '/');
+        if (str_starts_with($path, 'profile-photos/') === false || str_contains($path, '..')) {
+            abort(404);
+        }
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $mimes = [
+            'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
+            'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml',
+        ];
+        $mime = $mimes[strtolower($extension)] ?? 'image/jpeg';
+        $content = Storage::disk('public')->get($path);
+
+        return response($content, 200, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
     /**
      * Display the user's profile form.
      */

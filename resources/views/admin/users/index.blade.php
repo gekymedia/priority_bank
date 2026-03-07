@@ -78,7 +78,7 @@
                             <div class="flex items-center">
                                 @if($user->profile_photo_path)
                                     <img class="h-10 w-10 rounded-full object-cover mr-3" 
-                                         src="{{ asset('storage/'.$user->profile_photo_path) }}" 
+                                         src="{{ route('profile.photo', ['path' => $user->profile_photo_path]) }}" 
                                          alt="{{ $user->name }}">
                                 @else
                                     <div class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium mr-3">

@@ -28,7 +28,7 @@
                         <div class="shrink-0">
                             @if(auth()->user()->profile_photo_path)
                                 <img class="h-16 w-16 rounded-full object-cover" 
-                                     src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" 
+                                     src="{{ route('profile.photo', ['path' => auth()->user()->profile_photo_path]) }}" 
                                      alt="Current profile photo">
                             @else
                                 <div class="h-16 w-16 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xl font-bold">
