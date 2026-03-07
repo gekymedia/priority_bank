@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\SystemRegistry;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -50,6 +51,13 @@ class SystemRegistryController extends Controller
                 'notification_sms' => false,
                 'notification_whatsapp' => false,
                 'notification_gekychat' => false,
+            ]);
+
+            Account::create([
+                'user_id' => $user->id,
+                'name' => 'Default',
+                'type' => 'bank',
+                'opening_balance' => 0,
             ]);
 
             $validated['user_id'] = $user->id;

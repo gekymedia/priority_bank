@@ -638,6 +638,24 @@
                         <span>Budgets</span>
                     </a>
                 </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('incomes.index') }}" class="sidebar-link {{ request()->routeIs('incomes.*') ? 'active' : '' }}">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>Income</span>
+                    </a>
+                </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('expenses.index') }}" class="sidebar-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>Expenses</span>
+                    </a>
+                </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('accounts.index') }}" class="sidebar-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
+                        <i class="fas fa-wallet"></i>
+                        <span>Accounts</span>
+                    </a>
+                </div>
             @endif
             
             @if(auth()->user()->isAdmin())

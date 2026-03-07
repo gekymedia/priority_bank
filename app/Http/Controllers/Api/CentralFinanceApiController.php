@@ -17,10 +17,12 @@ use Illuminate\Support\Str;
 
 /**
  * Central Finance API Controller
- * 
- * This controller handles bidirectional finance data synchronization:
- * - Accepts income/expense from external systems
- * - Pushes finance data back to external systems when created in Priority Bank
+ *
+ * Each external system (CUG, GekyChat, etc.) has a user account in the bank (Systems Registry
+ * links system_id to a User). Income and expense from that system are recorded against that
+ * system's user and account: deposit = credit their account (bank owes them), payout = debit
+ * their account. Admin Geky and other humans do their own transactions under their own user
+ * accounts. So the bank tracks per-entity balances (system or person) via user + account.
  */
 class CentralFinanceApiController extends Controller
 {
@@ -96,22 +98,36 @@ class CentralFinanceApiController extends Controller
             $incomeCategoryId = $incomeCategory->id;
         }
 
-        // Get default account if not provided
-        $accountId = $validated['account_id'] ?? Account::first()?->id;
-        if (!$accountId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No account available. Please create an account first.',
-            ], 400);
-        }
-
-        // Get default user (CEO/admin) - in production, this should be configurable
-        $userId = auth()->id() ?? User::where('role', 'admin')->first()?->id;
+        // Attribute to the system's user account (each source has its own user in the bank)
+        $userId = $system->user_id;
         if (!$userId) {
             return response()->json([
                 'success' => false,
-                'message' => 'No user available for recording income.',
+                'message' => 'System has no linked user account. Link a user to this source in API Keys / Sources.',
             ], 400);
+        }
+
+        // Use system's account, or first account for that user, or create a default one
+        $accountId = $validated['account_id'] ?? null;
+        if (!$accountId) {
+            $account = Account::where('user_id', $userId)->first();
+            if (!$account) {
+                $account = Account::create([
+                    'user_id' => $userId,
+                    'name' => 'Default',
+                    'type' => 'bank',
+                    'opening_balance' => 0,
+                ]);
+            }
+            $accountId = $account->id;
+        } else {
+            $account = Account::where('id', $accountId)->where('user_id', $userId)->first();
+            if (!$account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Account does not belong to this system.',
+                ], 400);
+            }
         }
 
         try {
@@ -216,22 +232,36 @@ class CentralFinanceApiController extends Controller
             $expenseCategoryId = $expenseCategory->id;
         }
 
-        // Get default account if not provided
-        $accountId = $validated['account_id'] ?? Account::first()?->id;
-        if (!$accountId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No account available. Please create an account first.',
-            ], 400);
-        }
-
-        // Get default user
-        $userId = auth()->id() ?? User::where('role', 'admin')->first()?->id;
+        // Attribute to the system's user account (each source has its own user in the bank)
+        $userId = $system->user_id;
         if (!$userId) {
             return response()->json([
                 'success' => false,
-                'message' => 'No user available for recording expense.',
+                'message' => 'System has no linked user account. Link a user to this source in API Keys / Sources.',
             ], 400);
+        }
+
+        // Use system's account, or first account for that user, or create a default one
+        $accountId = $validated['account_id'] ?? null;
+        if (!$accountId) {
+            $account = Account::where('user_id', $userId)->first();
+            if (!$account) {
+                $account = Account::create([
+                    'user_id' => $userId,
+                    'name' => 'Default',
+                    'type' => 'bank',
+                    'opening_balance' => 0,
+                ]);
+            }
+            $accountId = $account->id;
+        } else {
+            $account = Account::where('id', $accountId)->where('user_id', $userId)->first();
+            if (!$account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Account does not belong to this system.',
+                ], 400);
+            }
         }
 
         try {
