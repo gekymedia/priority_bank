@@ -139,4 +139,44 @@ class SystemRegistryController extends Controller
         return redirect()->route('api-keys.index')
             ->with('success', 'Source deleted successfully!');
     }
+
+    /**
+     * Create a system user account for an existing source and link it.
+     * Use when a source was created without a user (e.g. before the feature existed).
+     */
+    public function createUser(SystemRegistry $systemRegistry)
+    {
+        if ($systemRegistry->user_id) {
+            return redirect()->route('api-keys.index')
+                ->with('info', 'This source already has a linked user account.');
+        }
+
+        DB::transaction(function () use ($systemRegistry) {
+            $systemId = $systemRegistry->system_id;
+            $name = $systemRegistry->name;
+            $systemEmail = 'system.' . strtolower($systemId) . '@prioritybank.internal';
+            $systemPhone = 'SYSTEM-' . $systemId;
+
+            $user = User::create([
+                'name' => $name . ' (System Account)',
+                'email' => $systemEmail,
+                'phone' => $systemPhone,
+                'password' => Hash::make(Str::random(32)),
+                'role' => 'user',
+                'type' => 'system',
+                'status' => 'approved',
+                'preferred_currency' => 'GHS',
+                'notification_email' => false,
+                'notification_browser' => false,
+                'notification_sms' => false,
+                'notification_whatsapp' => false,
+                'notification_gekychat' => false,
+            ]);
+
+            $systemRegistry->update(['user_id' => $user->id]);
+        });
+
+        return redirect()->route('api-keys.index')
+            ->with('success', 'User account created and linked to "' . $systemRegistry->name . '".');
+    }
 }

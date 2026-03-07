@@ -108,7 +108,16 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if(!$system->user_id)
+                                    <form action="{{ route('admin.sources.create-user', $system) }}" method="POST" class="inline" 
+                                          onsubmit="return confirm('Create a system user account and link it to this source?');">
+                                        @csrf
+                                        <button type="submit" class="text-indigo-600 hover:text-indigo-900 whitespace-nowrap" title="Create user account and link to this source">
+                                            <i class="fas fa-user-plus mr-1"></i>Create user & link
+                                        </button>
+                                    </form>
+                                @endif
                                 {{-- Generate API Key button --}}
                                 <button onclick="generateKeyForSource('{{ $system->system_id }}', '{{ $system->name }}', '{{ $system->callback_url ?? '' }}')" 
                                         class="text-green-600 hover:text-green-900" title="Generate API Key">

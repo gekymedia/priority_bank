@@ -59,6 +59,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('sources', [\App\Http\Controllers\SystemRegistryController::class, 'store'])->name('sources.store');
     Route::put('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'update'])->name('sources.update');
     Route::delete('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'destroy'])->name('sources.destroy');
+    Route::post('sources/{systemRegistry}/create-user', [\App\Http\Controllers\SystemRegistryController::class, 'createUser'])->name('sources.create-user');
     
     // Payment Settings (Hubtel & Paystack; Hubtel takes precedence when both configured)
     Route::get('/payment-settings', [\App\Http\Controllers\Admin\PaymentSettingsController::class, 'index'])->name('payment-settings.index');
