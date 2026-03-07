@@ -557,7 +557,7 @@ class SavingsController extends Controller
             'status' => 'successful',
         ]);
 
-        // Create income transaction against Priority Bank source (include deposit note for "view more")
+        // Create income transaction linked to this saving so "view more" shows the same notes as the Savings page
         $priorityBank = \App\Models\SystemRegistry::where('system_id', 'priority_bank')->first();
         if ($priorityBank) {
             \App\Models\Transaction::create([
@@ -567,8 +567,8 @@ class SavingsController extends Controller
                 'amount' => $saving->amount,
                 'date' => $saving->deposit_date,
                 'description' => "Savings deposit from {$saving->user->name} - #{$saving->id} (Direct Deposit)",
-                'notes' => $saving->notes,
                 'external_system_id' => $priorityBank->id,
+                'saving_id' => $saving->id,
             ]);
         }
 

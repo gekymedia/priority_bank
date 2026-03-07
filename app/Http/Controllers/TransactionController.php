@@ -32,7 +32,7 @@ class TransactionController extends Controller
             ->when(request('end_date'), function ($q) {
                 return $q->where('date', '<=', request('end_date'));
             })
-            ->with(['user', 'externalSystem'])
+            ->with(['user', 'externalSystem', 'depositSaving'])
             ->latest()
             ->paginate(15);
 

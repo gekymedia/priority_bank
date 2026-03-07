@@ -23,6 +23,7 @@ class Transaction extends Model
         'description',
         'notes',
         'external_system_id',
+        'saving_id',
     ];
 
     /**
@@ -49,6 +50,15 @@ class Transaction extends Model
     public function externalSystem()
     {
         return $this->belongsTo(SystemRegistry::class, 'external_system_id');
+    }
+
+    /**
+     * Get the deposit (saving) this transaction was created from when admin approved a deposit.
+     * Used to show the same notes from the Savings page in transaction "view more".
+     */
+    public function depositSaving()
+    {
+        return $this->belongsTo(Saving::class, 'saving_id');
     }
 
     /**

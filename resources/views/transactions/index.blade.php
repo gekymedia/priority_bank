@@ -102,7 +102,7 @@
                                 class="transaction-view-more ml-1 inline-flex align-middle text-blue-600 hover:text-blue-800 focus:outline-none"
                                 title="View details"
                                 data-description="{{ e($transaction->description ?? '') }}"
-                                data-notes="{{ e($transaction->notes ?? '') }}"
+                                data-notes="{{ e($transaction->depositSaving?->notes ?? $transaction->notes ?? '') }}"
                                 aria-label="View description and notes">
                                 <i class="fas fa-info-circle text-sm"></i>
                             </button>
@@ -152,7 +152,7 @@
                     <p id="transactionDetailDescription" class="mt-1 text-gray-900 whitespace-pre-wrap">—</p>
                 </div>
                 <div id="transactionDetailNotesWrap" class="hidden">
-                    <p class="font-medium text-gray-600">Note (pre-approval / internal)</p>
+                    <p class="font-medium text-gray-600">Note</p>
                     <p id="transactionDetailNotes" class="mt-1 text-gray-900 whitespace-pre-wrap">—</p>
                 </div>
             </div>
