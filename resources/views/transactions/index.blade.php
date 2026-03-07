@@ -80,7 +80,7 @@
                         @if(Auth::user()->isAdmin())
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             @if($transaction->user)
-                                <a href="{{ route('users.statement', $transaction->user) }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:underline">
+                                <a href="{{ route('admin.users.statement', $transaction->user) }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:underline">
                                     {{ $transaction->user->name }}
                                 </a>
                             @else
