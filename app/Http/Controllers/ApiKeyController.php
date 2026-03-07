@@ -15,7 +15,7 @@ class ApiKeyController extends Controller
     public function index()
     {
         $tokens = Auth::user()->tokens()->latest()->get();
-        $systems = SystemRegistry::active()->orderBy('name')->get();
+        $systems = SystemRegistry::with('user')->active()->orderBy('name')->get();
         
         return view('api-keys.index', compact('tokens', 'systems'));
     }

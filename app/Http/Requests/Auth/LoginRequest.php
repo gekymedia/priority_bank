@@ -41,20 +41,35 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $login = $this->input('login');
+        $login = trim($this->input('login'));
         $password = $this->input('password');
         $remember = $this->boolean('remember');
 
-        // Determine if login is email or phone
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
 
-        // Attempt authentication with email or phone
-        if (! Auth::attempt([$field => $login, 'password' => $password], $remember)) {
-            RateLimiter::hit($this->throttleKey());
+        if ($isEmail) {
+            // Login with email
+            if (! Auth::attempt(['email' => $login, 'password' => $password], $remember)) {
+                RateLimiter::hit($this->throttleKey());
+                throw ValidationException::withMessages([
+                    'login' => trans('auth.failed'),
+                ]);
+            }
+        } else {
+            // Login with phone: normalize to digits for flexible matching (spaces, dashes, +233, 0)
+            $phoneDigits = preg_replace('/\D/', '', $login);
+            $user = \App\Models\User::query()
+                ->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), ' ', ''), '-', ''), '+', ''), '(', ''), ')', '') = ?", [$phoneDigits])
+                ->first();
 
-            throw ValidationException::withMessages([
-                'login' => trans('auth.failed'),
-            ]);
+            if (! $user || ! \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+                RateLimiter::hit($this->throttleKey());
+                throw ValidationException::withMessages([
+                    'login' => trans('auth.failed'),
+                ]);
+            }
+
+            Auth::login($user, $remember);
         }
 
         RateLimiter::clear($this->throttleKey());
@@ -76,7 +91,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'login' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
