@@ -45,6 +45,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone / Account Number</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -62,6 +63,13 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-500">{{ $system->system_id }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if($system->user_id)
+                                <code class="text-sm bg-gray-100 px-2 py-0.5 rounded" title="Use this as PBG_CUG_SYSTEM_USER_ID or PBG_AGENCY_SYSTEM_USER_ID in CUG .env">{{ $system->user_id }}</code>
+                            @else
+                                <span class="text-sm text-gray-400">—</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-700">{{ $system->user?->phone ?? $system->account_number ?? '—' }}</div>
@@ -146,7 +154,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
+                        <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">
                             No sources found.
                         </td>
                     </tr>

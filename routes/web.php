@@ -76,6 +76,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/sika-wallet/transactions', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'transactions'])->name('sika-wallet.transactions');
     Route::get('/sika-wallet/wallets', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'wallets'])->name('sika-wallet.wallets');
     Route::get('/sika-wallet/wallets/{wallet}', [\App\Http\Controllers\Admin\SikaWalletDashboardController::class, 'walletDetails'])->name('sika-wallet.wallet-details');
+
+    // System Logs (Laravel log file viewer)
+    Route::prefix('logs')->name('logs.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\LogController::class, 'index'])->name('index');
+        Route::post('/refresh', [\App\Http\Controllers\Admin\LogController::class, 'refresh'])->name('refresh');
+        Route::post('/clear', [\App\Http\Controllers\Admin\LogController::class, 'clear'])->name('clear');
+        Route::get('/download', [\App\Http\Controllers\Admin\LogController::class, 'download'])->name('download');
+        Route::post('/clear-all', [\App\Http\Controllers\Admin\LogController::class, 'clearAll'])->name('clear-all');
+        Route::get('/download-all', [\App\Http\Controllers\Admin\LogController::class, 'downloadAll'])->name('download-all');
+    });
 });
 
 Route::middleware(['auth', 'approved'])->group(function () {

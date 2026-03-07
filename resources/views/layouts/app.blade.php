@@ -671,6 +671,12 @@
                         <span>Notification Settings</span>
                     </a>
                 </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('admin.logs.index') }}" class="sidebar-link {{ request()->routeIs('admin.logs.*') ? 'active' : '' }}">
+                        <i class="fas fa-file-alt"></i>
+                        <span>System Logs</span>
+                    </a>
+                </div>
             @endif
             
             <div class="sidebar-menu-item" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(79, 70, 229, 0.1);">
