@@ -14,10 +14,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Services\AiInsightsService;
 use Carbon\Carbon;
 use DatePeriod;
 use DateInterval;
-use OpenAI;
 
 class DashboardController extends Controller
 {
@@ -87,17 +87,15 @@ class DashboardController extends Controller
         $recentTransactions = $this->getRecentTransactions(null);
 
         // AI Insights with Cache
-        $aiInsights = Cache::remember("ai-insights-{$user->id}", now()->addHours(6), function () use (
-            $totalIncome, $totalExpenses, $activeLoans, $netBalance, $expenseCategoryChart
-        ) {
-            return $this->generateAiInsights([
-                'totalIncome' => $totalIncome,
-                'totalExpenses' => $totalExpenses,
-                'activeLoans' => $activeLoans,
-                'netBalance' => $netBalance,
-                'expenseBreakdown' => $expenseCategoryChart
-            ]);
-        });
+        $aiInsightsService = app(AiInsightsService::class);
+        $financialData = [
+            'totalIncome' => $totalIncome,
+            'totalExpenses' => $totalExpenses,
+            'activeLoans' => $activeLoans,
+            'netBalance' => $netBalance,
+            'expenseBreakdown' => $expenseCategoryChart,
+        ];
+        $aiInsights = Cache::remember("ai-insights-{$user->id}", now()->addHours(6), fn () => $aiInsightsService->generateInsights($financialData));
 
         return view('admin.dashboard', compact(
             'totalIncome', 'totalExpenses', 'activeLoans', 'loansCount',
@@ -224,87 +222,4 @@ class DashboardController extends Controller
         return $transactions->all();
     }
 
-    protected function generateAiInsights($financialData)
-    {
-        $promptData = [
-            'total_income' => number_format($financialData['totalIncome'], 2),
-            'total_expenses' => number_format($financialData['totalExpenses'], 2),
-            'net_balance' => number_format($financialData['netBalance'], 2),
-            'expense_breakdown' => array_combine(
-                $financialData['expenseBreakdown']['labels']->toArray(),
-                array_map(fn($amount) => number_format($amount, 2), $financialData['expenseBreakdown']['data']->toArray())
-            ),
-            'active_loans' => number_format($financialData['activeLoans'], 2),
-            'currency' => 'GHS'
-        ];
-
-        $apiKey = config('services.openai.api_key');
-        
-        // If OpenAI API key is not set, use basic insights
-        if (empty($apiKey)) {
-            return $this->generateBasicInsights($financialData);
-        }
-
-        $prompt = "Analyze this financial data and provide 3–4 concise insights with actionable recommendations:\n\n"
-            . json_encode($promptData, JSON_PRETTY_PRINT) . "\n\n"
-            . "Focus on: spending patterns, savings opportunities, unusual expenses, and loan impact. "
-            . "Use simple language and format response in <p> HTML blocks.";
-
-        try {
-            $client = \OpenAI::client($apiKey);
-
-            $response = $client->chat()->create([
-                'model' => 'gpt-4',
-                'messages' => [
-                    ['role' => 'user', 'content' => $prompt]
-                ],
-                'max_tokens' => 600,
-                'temperature' => 0.7,
-            ]);
-
-            return $response->choices[0]->message->content;
-        } catch (\Exception $e) {
-            Log::error('AI Insight error: ' . $e->getMessage());
-            return $this->generateBasicInsights($financialData);
-        }
-    }
-
-    protected function generateBasicInsights($financialData)
-    {
-        $insights = [];
-
-       $expenseBreakdown = array_combine(
-    $financialData['expenseBreakdown']['labels']->toArray(),
-    $financialData['expenseBreakdown']['data']->toArray()
-);
-
-        arsort($expenseBreakdown);
-        $topCategory = key($expenseBreakdown);
-        $topAmount = current($expenseBreakdown);
-        $topPercentage = $financialData['totalExpenses'] > 0
-            ? round(($topAmount / $financialData['totalExpenses']) * 100)
-            : 0;
-
-        $insights[] = "Your largest expense category is <strong>{$topCategory}</strong>, accounting for {$topPercentage}% of your total expenses.";
-
-        $savingsRate = $financialData['totalIncome'] > 0
-            ? round(($financialData['netBalance'] / $financialData['totalIncome']) * 100, 2)
-            : 0;
-
-        if ($savingsRate > 20) {
-            $insights[] = "Great job! Your savings rate is <strong>{$savingsRate}%</strong>, above the 20% benchmark.";
-        } else {
-            $insights[] = "Your savings rate is <strong>{$savingsRate}%</strong>. Consider reducing expenses to increase savings.";
-        }
-
-        if ($financialData['activeLoans'] > 0) {
-            $loanPercentage = $financialData['totalIncome'] > 0
-                ? round(($financialData['activeLoans'] / $financialData['totalIncome']) * 100)
-                : 0;
-
-            $insights[] = "You have <strong>GHS " . number_format($financialData['activeLoans'], 2) . "</strong> in active loans, representing {$loanPercentage}% of your income.";
-        }
-
-        return implode('<br><br>', $insights);
-    }
 }

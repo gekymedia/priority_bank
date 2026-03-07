@@ -82,6 +82,7 @@ class TransactionController extends Controller
                 'amount' => 'required|numeric|min:0.01',
                 'date' => 'required|date',
                 'description' => 'nullable|string',
+                'notes' => 'nullable|string|max:1000',
                 'external_system_id' => 'nullable|exists:systems_registry,id',
                 'user_id' => 'nullable|exists:users,id'
             ]);
@@ -104,6 +105,7 @@ class TransactionController extends Controller
                 'amount' => $validated['amount'],
                 'date' => $validated['date'],
                 'description' => $validated['description'],
+                'notes' => $validated['notes'] ?? null,
                 'external_system_id' => $validated['external_system_id'] ?? null
             ]);
 
@@ -207,7 +209,8 @@ class TransactionController extends Controller
             'category' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $transaction->update($validated);

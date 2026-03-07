@@ -78,8 +78,14 @@
                             {{ $transaction->date->format('M d, Y') }}
                         </td>
                         @if(Auth::user()->isAdmin())
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ $transaction->user->name ?? 'N/A' }}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            @if($transaction->user)
+                                <a href="{{ route('users.statement', $transaction->user) }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:underline">
+                                    {{ $transaction->user->name }}
+                                </a>
+                            @else
+                                <span class="text-gray-500">N/A</span>
+                            @endif
                             @if($transaction->externalSystem)
                                 <br><span class="text-xs text-gray-500">Source: {{ $transaction->externalSystem->name }}</span>
                             @endif
@@ -90,8 +96,16 @@
                                 {{ ucfirst($transaction->type) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ $transaction->description }}
+                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                            <span class="inline-block align-middle">{{ Str::limit($transaction->description ?? '—', 50) }}</span>
+                            <button type="button"
+                                class="transaction-view-more ml-1 inline-flex align-middle text-blue-600 hover:text-blue-800 focus:outline-none"
+                                title="View details"
+                                data-description="{{ e($transaction->description ?? '') }}"
+                                data-notes="{{ e($transaction->notes ?? '') }}"
+                                aria-label="View description and notes">
+                                <i class="fas fa-info-circle text-sm"></i>
+                            </button>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $transaction->category }}
@@ -121,27 +135,83 @@
     </div>
 </div>
 
-@if(Auth::user()->isAdmin())
+<!-- Modal: Description & notes detail -->
+<div id="transactionDetailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-modal="true" role="dialog">
+    <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50" id="transactionDetailModalBackdrop"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Transaction details</h3>
+                <button type="button" id="transactionDetailModalClose" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <p class="font-medium text-gray-600">Description</p>
+                    <p id="transactionDetailDescription" class="mt-1 text-gray-900 whitespace-pre-wrap">—</p>
+                </div>
+                <div id="transactionDetailNotesWrap" class="hidden">
+                    <p class="font-medium text-gray-600">Note (pre-approval / internal)</p>
+                    <p id="transactionDetailNotes" class="mt-1 text-gray-900 whitespace-pre-wrap">—</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
-    // Open transaction modal from page button
     document.addEventListener('DOMContentLoaded', function() {
+        @if(Auth::user()->isAdmin())
+        // Open transaction modal from page button
         const newTransactionBtnFromPage = document.getElementById('newTransactionBtnFromPage');
         const transactionModal = document.getElementById('transactionModal');
-        
         if (newTransactionBtnFromPage && transactionModal) {
             newTransactionBtnFromPage.addEventListener('click', function() {
                 transactionModal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
-                // Focus on first input (Source) after a short delay
                 setTimeout(() => {
                     const firstInput = document.getElementById('modal_external_system_id');
                     if (firstInput) firstInput.focus();
                 }, 100);
             });
         }
+        @endif
+
+        // View more: description & notes modal (all users)
+        const detailModal = document.getElementById('transactionDetailModal');
+        const detailDesc = document.getElementById('transactionDetailDescription');
+        const detailNotes = document.getElementById('transactionDetailNotes');
+        const detailNotesWrap = document.getElementById('transactionDetailNotesWrap');
+        const detailBackdrop = document.getElementById('transactionDetailModalBackdrop');
+        const detailClose = document.getElementById('transactionDetailModalClose');
+
+        function openDetailModal(description, notes) {
+            detailDesc.textContent = description || '—';
+            if (notes && notes.trim() !== '') {
+                detailNotes.textContent = notes;
+                detailNotesWrap.classList.remove('hidden');
+            } else {
+                detailNotesWrap.classList.add('hidden');
+            }
+            detailModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetailModal() {
+            detailModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('.transaction-view-more').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openDetailModal(this.getAttribute('data-description') || '', this.getAttribute('data-notes') || '');
+            });
+        });
+        if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetailModal);
+        if (detailClose) detailClose.addEventListener('click', closeDetailModal);
     });
 </script>
 @endpush
-@endif
 @endsection

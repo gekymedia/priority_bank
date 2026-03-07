@@ -45,6 +45,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Number</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protected</th>
@@ -61,6 +62,9 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-500">{{ $system->system_id }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-700">{{ $system->account_number ?? '—' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -111,7 +115,7 @@
                                     <i class="fas fa-key"></i>
                                 </button>
                                 @if(!$system->is_protected)
-                                    <button onclick="editSource({{ $system->id }}, '{{ $system->system_id }}', '{{ $system->name }}', '{{ $system->type }}', '{{ $system->callback_url ?? '' }}', '{{ $system->api_base_url ?? '' }}', {{ $system->active_status ? 'true' : 'false' }}, '{{ $system->description ?? '' }}')" 
+                                    <button onclick="editSource({{ $system->id }}, '{{ addslashes(e($system->system_id)) }}', '{{ addslashes(e($system->name)) }}', '{{ $system->type }}', '{{ addslashes(e($system->callback_url ?? '')) }}', '{{ addslashes(e($system->api_base_url ?? '')) }}', {{ $system->active_status ? 'true' : 'false' }}, '{{ addslashes(e($system->description ?? '')) }}', '{{ addslashes(e($system->account_number ?? '')) }}')" 
                                             class="text-blue-600 hover:text-blue-900" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -133,7 +137,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
+                        <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
                             No sources found.
                         </td>
                     </tr>
@@ -369,6 +373,15 @@
                     </div>
                 </div>
                 
+                <div class="mb-4">
+                    <label for="source_account_number" class="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
+                    <input type="text" name="account_number" id="source_account_number"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="e.g., 1234567890">
+                    <p class="mt-1 text-xs text-gray-500">Bank account number for this source</p>
+                    <span class="error-message text-red-600 text-sm mt-1" id="error_account_number" style="display: none;"></span>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="mb-4">
                         <label for="source_type" class="block text-sm font-medium text-gray-700 mb-2">Type *</label>
@@ -494,7 +507,7 @@ function closeSourceModal() {
     document.getElementById('source_id').value = '';
 }
 
-function editSource(id, systemId, name, type, callbackUrl, apiBaseUrl, activeStatus, description) {
+function editSource(id, systemId, name, type, callbackUrl, apiBaseUrl, activeStatus, description, accountNumber) {
     const modal = document.getElementById('sourceModal');
     const form = document.getElementById('sourceForm');
     const title = document.getElementById('sourceModalTitle');
@@ -507,6 +520,7 @@ function editSource(id, systemId, name, type, callbackUrl, apiBaseUrl, activeSta
     document.getElementById('source_api_base_url').value = apiBaseUrl || '';
     document.getElementById('source_active_status').value = activeStatus ? '1' : '0';
     document.getElementById('source_description').value = description || '';
+    document.getElementById('source_account_number').value = accountNumber || '';
     
     title.textContent = 'Edit Source';
     form.action = '{{ route("admin.sources.update", ":id") }}'.replace(':id', id);

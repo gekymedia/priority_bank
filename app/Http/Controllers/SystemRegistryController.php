@@ -3,17 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\SystemRegistry;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SystemRegistryController extends Controller
 {
     /**
      * Store a newly created resource in storage.
+     * Creates a system user account for the source so it can be accounted for separately
+     * (balance tracking, transactions) and links it to the new source.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'system_id' => 'required|string|max:255|unique:systems_registry,system_id',
+            'account_number' => 'nullable|string|max:50',
             'name' => 'required|string|max:255',
             'type' => 'required|in:manual,automated,hybrid',
             'callback_url' => 'nullable|url|max:255',
@@ -23,7 +30,31 @@ class SystemRegistryController extends Controller
             'is_protected' => 'boolean',
         ]);
 
-        $system = SystemRegistry::create($validated);
+        $system = DB::transaction(function () use ($validated) {
+            $systemId = $validated['system_id'];
+            $name = $validated['name'];
+            $systemEmail = 'system.' . strtolower($systemId) . '@prioritybank.internal';
+            $systemPhone = 'SYSTEM-' . $systemId;
+
+            $user = User::create([
+                'name' => $name . ' (System Account)',
+                'email' => $systemEmail,
+                'phone' => $systemPhone,
+                'password' => Hash::make(Str::random(32)),
+                'role' => 'user',
+                'type' => 'system',
+                'status' => 'approved',
+                'preferred_currency' => 'GHS',
+                'notification_email' => false,
+                'notification_browser' => false,
+                'notification_sms' => false,
+                'notification_whatsapp' => false,
+                'notification_gekychat' => false,
+            ]);
+
+            $validated['user_id'] = $user->id;
+            return SystemRegistry::create($validated);
+        });
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
@@ -56,6 +87,7 @@ class SystemRegistryController extends Controller
 
         $validated = $request->validate([
             'system_id' => 'required|string|max:255|unique:systems_registry,system_id,' . $systemRegistry->id,
+            'account_number' => 'nullable|string|max:50',
             'name' => 'required|string|max:255',
             'type' => 'required|in:manual,automated,hybrid',
             'callback_url' => 'nullable|url|max:255',

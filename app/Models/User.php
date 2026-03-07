@@ -43,6 +43,7 @@ class User extends Authenticatable
         'notification_gekychat',
         'theme',
         'role',
+        'type',
         'status',
     ];
 

@@ -44,6 +44,7 @@ return [
         'api_key' => env('HUBTEL_API_KEY'),
         'api_secret' => env('HUBTEL_API_SECRET'),
         'from' => env('HUBTEL_FROM', 'PriorityBank'),
+        'merchant_account_number' => env('HUBTEL_MERCHANT_ACCOUNT_NUMBER'),
     ],
 
     'paystack' => [

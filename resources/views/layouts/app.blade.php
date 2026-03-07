@@ -653,6 +653,18 @@
                     </a>
                 </div>
                 <div class="sidebar-menu-item">
+                    <a href="{{ route('admin.ai-insights.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-insights.*') ? 'active' : '' }}">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Insights & Recommendations</span>
+                    </a>
+                </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('admin.payment-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.payment-settings.*') ? 'active' : '' }}">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Payment Settings</span>
+                    </a>
+                </div>
+                <div class="sidebar-menu-item">
                     <a href="{{ route('admin.notification-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.notification-settings.*') ? 'active' : '' }}">
                         <i class="fas fa-bell"></i>
                         <span>Notification Settings</span>
@@ -851,6 +863,15 @@
                         <span class="error-message text-red-600 text-sm mt-1" id="error_description" style="display: none;"></span>
                     </div>
 
+                    <!-- Notes (pre-approval / internal) -->
+                    <div class="mb-4">
+                        <label for="modal_notes" class="block text-sm font-medium text-gray-700 mb-2">Note (pre-approval / internal)</label>
+                        <textarea name="notes" id="modal_notes" rows="2"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3"
+                            placeholder="Optional note visible in transaction details"></textarea>
+                        <span class="error-message text-red-600 text-sm mt-1" id="error_notes" style="display: none;"></span>
+                    </div>
+
                     <!-- Date (Last) -->
                     <div class="mb-4">
                         <label for="modal_date" class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
@@ -1012,8 +1033,8 @@
                     const userSelect = document.getElementById('modal_user_id');
                     if (userSelect) {
                         userSelect.removeAttribute('required');
-                        // Destroy Select2 if initialized
-                        if (typeof $ !== 'undefined' && $(userSelect).hasClass('select2-hidden-accessible')) {
+                        // Destroy Select2 if initialized (guard against missing jQuery)
+                        if (typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function' && userSelect.classList && userSelect.classList.contains('select2-hidden-accessible')) {
                             $(userSelect).select2('destroy');
                         }
                         userSelect.value = '';
@@ -1069,8 +1090,9 @@
                         userSelectField.style.display = 'block';
                         if (userSelect) {
                             userSelect.setAttribute('required', 'required');
-                            // Initialize Select2 if not already initialized
-                            if (typeof $ !== 'undefined' && !$(userSelect).hasClass('select2-hidden-accessible')) {
+                            // Initialize Select2 if not already initialized (guard against missing jQuery)
+                            var hasSelect2 = userSelect.classList && userSelect.classList.contains('select2-hidden-accessible');
+                            if (typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function' && !hasSelect2) {
                                 $(userSelect).select2({
                                     theme: 'bootstrap-5',
                                     placeholder: 'Select User',
@@ -1101,8 +1123,8 @@
                         userSelectField.style.display = 'none';
                         if (userSelect) {
                             userSelect.removeAttribute('required');
-                            // Destroy Select2 if initialized
-                            if (typeof $ !== 'undefined' && $(userSelect).hasClass('select2-hidden-accessible')) {
+                            // Destroy Select2 if initialized (guard against missing jQuery)
+                            if (typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function' && userSelect.classList && userSelect.classList.contains('select2-hidden-accessible')) {
                                 $(userSelect).select2('destroy');
                             }
                             userSelect.value = '';
@@ -1167,7 +1189,8 @@
                         const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
                         if (systemId === 'priority_bank') {
                             const userSelect = document.getElementById('modal_user_id');
-                            if (userSelect && typeof $ !== 'undefined' && !$(userSelect).hasClass('select2-hidden-accessible')) {
+                            var hasSelect2 = userSelect && userSelect.classList && userSelect.classList.contains('select2-hidden-accessible');
+                            if (userSelect && typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function' && !hasSelect2) {
                                 $(userSelect).select2({
                                     theme: 'bootstrap-5',
                                     placeholder: 'Select User',
@@ -1214,11 +1237,11 @@
                 
                 // Initialize categories on modal open (expense is default)
                 updateCategories();
-                // Initialize Priority Bank category if needed
+                // Initialize Priority Bank category when modal opens with Bank selected
                 setTimeout(function() {
-                    const sourceSelect = document.getElementById('modal_source');
-                    if (sourceSelect) {
-                        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
+                    const sourceSelectEl = document.getElementById('modal_external_system_id');
+                    if (sourceSelectEl) {
+                        const selectedOption = sourceSelectEl.options[sourceSelectEl.selectedIndex];
                         const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
                         if (systemId === 'priority_bank') {
                             updatePriorityBankCategory();

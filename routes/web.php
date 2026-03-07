@@ -39,6 +39,9 @@ Route::get('/dashboard', function () {
 // Admin Dashboard
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
+
+    // AI Insights & Recommendations
+    Route::get('/ai-insights', [\App\Http\Controllers\Admin\AiInsightsController::class, 'index'])->name('ai-insights.index');
     
     // User Management
     Route::resource('users', \App\Http\Controllers\UserController::class);
@@ -57,6 +60,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'update'])->name('sources.update');
     Route::delete('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'destroy'])->name('sources.destroy');
     
+    // Payment Settings (Hubtel & Paystack; Hubtel takes precedence when both configured)
+    Route::get('/payment-settings', [\App\Http\Controllers\Admin\PaymentSettingsController::class, 'index'])->name('payment-settings.index');
+    Route::put('/payment-settings', [\App\Http\Controllers\Admin\PaymentSettingsController::class, 'update'])->name('payment-settings.update');
+
     // Notification Settings (multi-channel: GekyChat, WhatsApp, Email, SMS)
     Route::get('/notification-settings', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'index'])->name('notification-settings.index');
     Route::get('/notification-settings/sms-balance', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'smsBalance'])->name('notification-settings.sms-balance');

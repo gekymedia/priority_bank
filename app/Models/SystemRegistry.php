@@ -14,6 +14,8 @@ class SystemRegistry extends Model
 
     protected $fillable = [
         'system_id',
+        'user_id',
+        'account_number',
         'name',
         'type',
         'callback_url',

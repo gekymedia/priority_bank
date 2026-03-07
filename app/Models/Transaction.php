@@ -21,6 +21,7 @@ class Transaction extends Model
         'amount',
         'date',
         'description',
+        'notes',
         'external_system_id',
     ];
 

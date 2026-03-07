@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Payment;
 use App\Models\Loan;
+use App\Models\PaymentSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -15,26 +16,18 @@ class PaymentService
 
     public function __construct()
     {
+        PaymentSetting::applyToConfig();
         $this->paystackSecretKey = config('services.paystack.secret_key');
         $this->hubtelApiKey = config('services.hubtel.api_key') ?? config('services.hubtel.client_id');
         $this->hubtelApiSecret = config('services.hubtel.api_secret') ?? config('services.hubtel.client_secret');
     }
 
     /**
-     * Determine which payment gateway to use (Hubtel takes precedence)
+     * Determine which payment gateway to use (Hubtel takes precedence when both configured)
      */
     public function getActiveGateway(): ?string
     {
-        // Hubtel takes precedence if both are configured
-        if (!empty($this->hubtelApiKey) && !empty($this->hubtelApiSecret)) {
-            return 'hubtel';
-        }
-        
-        if (!empty($this->paystackSecretKey)) {
-            return 'paystack';
-        }
-        
-        return null;
+        return PaymentSetting::getActiveGateway();
     }
 
     /**
