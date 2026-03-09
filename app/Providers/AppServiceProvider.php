@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Notifications\Sms\SmsDriverInterface;
 use App\Services\Notifications\Sms\HubtelSmsDriver;
@@ -42,5 +43,25 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        // Queue jobs counts for admin sidebar (cached 30s)
+        View::composer('layouts.app', function ($view) {
+            try {
+                $connection = config('queue.default');
+                $config = config('queue.connections.' . $connection);
+                $jobsTable = $config['table'] ?? 'jobs';
+                $pendingJobsCount = \Illuminate\Support\Facades\Schema::hasTable($jobsTable)
+                    ? \Illuminate\Support\Facades\Cache::remember('queue:pending_count', 30, fn () => \Illuminate\Support\Facades\DB::table($jobsTable)->count())
+                    : 0;
+                $failedJobsCount = \Illuminate\Support\Facades\Schema::hasTable('failed_jobs')
+                    ? \Illuminate\Support\Facades\Cache::remember('queue:failed_count', 30, fn () => \Illuminate\Support\Facades\DB::table('failed_jobs')->count())
+                    : 0;
+                $view->with('pendingJobsCount', $pendingJobsCount);
+                $view->with('failedJobsCount', $failedJobsCount);
+            } catch (\Throwable $e) {
+                $view->with('pendingJobsCount', 0);
+                $view->with('failedJobsCount', 0);
+            }
+        });
     }
 }

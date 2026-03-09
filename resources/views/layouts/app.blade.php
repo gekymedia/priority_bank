@@ -697,6 +697,15 @@
                         <span>System Logs</span>
                     </a>
                 </div>
+                <div class="sidebar-menu-item">
+                    <a href="{{ route('admin.queue-jobs.index') }}" class="sidebar-link {{ request()->routeIs('admin.queue-jobs.*') ? 'active' : '' }}">
+                        <i class="fas fa-list-alt"></i>
+                        <span>Queued Jobs</span>
+                        @if(($pendingJobsCount ?? 0) > 0 || ($failedJobsCount ?? 0) > 0)
+                            <span class="ml-2 px-1.5 py-0.5 text-xs rounded {{ ($failedJobsCount ?? 0) > 0 ? 'bg-red-500' : 'bg-amber-500' }} text-white">{{ ($pendingJobsCount ?? 0) + ($failedJobsCount ?? 0) }}</span>
+                        @endif
+                    </a>
+                </div>
             @endif
             
             <div class="sidebar-menu-item" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(79, 70, 229, 0.1);">

@@ -170,6 +170,33 @@ class NotificationSettingsController extends Controller
     }
 
     /**
+     * GET reveal a secret value for display (e.g. when user clicks "show"). Returns JSON { value } or 404.
+     * Only for authenticated admins; key must be one of the allowed secret keys.
+     */
+    public function revealSecret(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $allowed = ['arkesel_api_key', 'gekychat_client_secret', 'whatsapp_access_token', 'smtp_password'];
+        $key = $request->query('key');
+        if (! in_array($key, $allowed, true)) {
+            return response()->json(['error' => 'Invalid key'], 400);
+        }
+        $value = NotificationSetting::get($key);
+        if ($value === null || $value === '') {
+            $value = match ($key) {
+                'arkesel_api_key' => config('services.arkesel.api_key'),
+                'gekychat_client_secret' => config('services.gekychat.client_secret'),
+                'whatsapp_access_token' => config('services.whatsapp.access_token') ?? config('services.whatsapp.api_token'),
+                'smtp_password' => config('mail.mailers.smtp.password'),
+                default => '',
+            };
+        }
+        if ($value === null || $value === '') {
+            return response()->json(['value' => '']);
+        }
+        return response()->json(['value' => $value]);
+    }
+
+    /**
      * GET SMS balance (Arkesel). Returns JSON { success, balance?, error? }.
      */
     public function smsBalance(ArkeselBalanceService $arkeselBalance): \Illuminate\Http\JsonResponse

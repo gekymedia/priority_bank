@@ -70,6 +70,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Notification Settings (multi-channel: GekyChat, WhatsApp, Email, SMS)
     Route::get('/notification-settings', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'index'])->name('notification-settings.index');
     Route::get('/notification-settings/sms-balance', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'smsBalance'])->name('notification-settings.sms-balance');
+    Route::get('/notification-settings/reveal-secret', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'revealSecret'])->name('notification-settings.reveal-secret');
     Route::put('/notification-settings', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'update'])->name('notification-settings.update');
     Route::post('/notification-settings/test', [\App\Http\Controllers\Admin\NotificationSettingsController::class, 'test'])->name('notification-settings.test');
 
@@ -87,6 +88,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/download', [\App\Http\Controllers\Admin\LogController::class, 'download'])->name('download');
         Route::post('/clear-all', [\App\Http\Controllers\Admin\LogController::class, 'clearAll'])->name('clear-all');
         Route::get('/download-all', [\App\Http\Controllers\Admin\LogController::class, 'downloadAll'])->name('download-all');
+    });
+
+    // Queue Jobs Management
+    Route::prefix('queue-jobs')->name('queue-jobs.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\QueueJobsController::class, 'index'])->name('index');
+        Route::post('/clear', [\App\Http\Controllers\Admin\QueueJobsController::class, 'clear'])->name('clear');
+        Route::post('/retry/{id}', [\App\Http\Controllers\Admin\QueueJobsController::class, 'retry'])->name('retry');
+        Route::post('/retry-all', [\App\Http\Controllers\Admin\QueueJobsController::class, 'retryAll'])->name('retry-all');
+        Route::delete('/delete/{id}', [\App\Http\Controllers\Admin\QueueJobsController::class, 'delete'])->name('delete');
     });
 });
 
