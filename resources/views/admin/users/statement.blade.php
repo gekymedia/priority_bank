@@ -30,6 +30,45 @@
         </form>
     </div>
 
+    {{-- Totals: 3 slim cards --}}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-3">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total credits</p>
+            <p class="text-lg font-semibold text-green-600 mt-0.5">GHS {{ number_format($totalCredits, 2) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-3">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total debits</p>
+            <p class="text-lg font-semibold text-red-600 mt-0.5">GHS {{ number_format($totalDebits, 2) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-3">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Net balance</p>
+            <p class="text-lg font-semibold mt-0.5 {{ $netBalance >= 0 ? 'text-gray-900' : 'text-red-600' }}">GHS {{ number_format($netBalance, 2) }}</p>
+        </div>
+    </div>
+
+    {{-- Print PDF & Send email --}}
+    <div class="flex flex-wrap gap-3 mb-6">
+        @php
+            $pdfParams = array_filter(['start_date' => $startDate?->format('Y-m-d'), 'end_date' => $endDate?->format('Y-m-d')]);
+            $pdfUrl = route('admin.users.statement.pdf', array_merge(['user' => $user], $pdfParams));
+        @endphp
+        <a href="{{ $pdfUrl }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+            <i class="fas fa-file-pdf mr-2"></i>Print / Download statement (PDF)
+        </a>
+        <form method="POST" action="{{ route('admin.users.statement.send-email', $user) }}" class="inline">
+            @csrf
+            @if($startDate)<input type="hidden" name="start_date" value="{{ $startDate->format('Y-m-d') }}">@endif
+            @if($endDate)<input type="hidden" name="end_date" value="{{ $endDate->format('Y-m-d') }}">@endif
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium">
+                <i class="fas fa-envelope mr-2"></i>Send statement by email
+            </button>
+        </form>
+    </div>
+
+    @if(session('success'))
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">{{ session('success') }}</div>
+    @endif
+
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">

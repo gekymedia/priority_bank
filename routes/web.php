@@ -50,7 +50,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('users/{user}/impersonate', [\App\Http\Controllers\UserController::class, 'impersonate'])->name('users.impersonate');
     Route::post('users/{user}/send-welcome-message', [\App\Http\Controllers\UserController::class, 'sendWelcomeMessage'])->name('users.send-welcome-message');
     Route::get('users/{user}/statement', [\App\Http\Controllers\UserController::class, 'statement'])->name('users.statement');
-    
+    Route::get('users/{user}/statement/pdf', [\App\Http\Controllers\UserController::class, 'statementPdf'])->name('users.statement.pdf');
+    Route::post('users/{user}/statement/send-email', [\App\Http\Controllers\UserController::class, 'sendStatementEmail'])->name('users.statement.send-email');
+
     // Fund Sources
     Route::get('/fund-sources', [\App\Http\Controllers\FundSourceController::class, 'index'])->name('fund-sources.index');
     Route::post('/fund-sources/transfer', [\App\Http\Controllers\FundSourceController::class, 'transfer'])->name('fund-sources.transfer');

@@ -104,7 +104,24 @@ class UserController extends Controller
     {
         $startDate = $request->has('start_date') ? $request->date('start_date') : null;
         $endDate = $request->has('end_date') ? $request->date('end_date') : null;
+        $data = $this->getStatementData($user, $startDate, $endDate);
 
+        return view('admin.users.statement', [
+            'user' => $user,
+            'entries' => $data['entries'],
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'totalCredits' => $data['totalCredits'],
+            'totalDebits' => $data['totalDebits'],
+            'netBalance' => $data['netBalance'],
+        ]);
+    }
+
+    /**
+     * Get statement data (entries and totals) for a user and optional date range.
+     */
+    protected function getStatementData(User $user, $startDate, $endDate): array
+    {
         $transactions = $user->transactions()
             ->when($startDate, fn ($q) => $q->where('date', '>=', $startDate))
             ->when($endDate, fn ($q) => $q->where('date', '<=', $endDate))
@@ -142,7 +159,71 @@ class UserController extends Controller
             ->sortByDesc(fn ($e) => $e->date->format('Y-m-d') . '-' . ($e->source === 'savings' ? 's' : 't') . '-' . ($e->reference ?? 0))
             ->values();
 
-        return view('admin.users.statement', compact('user', 'entries', 'startDate', 'endDate'));
+        $totalCredits = $entries->where('type', 'income')->sum('amount');
+        $totalDebits = $entries->where('type', 'expense')->sum('amount');
+        $netBalance = $totalCredits - $totalDebits;
+
+        return [
+            'entries' => $entries,
+            'totalCredits' => $totalCredits,
+            'totalDebits' => $totalDebits,
+            'netBalance' => $netBalance,
+        ];
+    }
+
+    /**
+     * Download statement as PDF (A4).
+     */
+    public function statementPdf(Request $request, User $user)
+    {
+        $startDate = $request->has('start_date') ? $request->date('start_date') : null;
+        $endDate = $request->has('end_date') ? $request->date('end_date') : null;
+        $data = $this->getStatementData($user, $startDate, $endDate);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.users.statement-pdf', [
+            'user' => $user,
+            'entries' => $data['entries'],
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'totalCredits' => $data['totalCredits'],
+            'totalDebits' => $data['totalDebits'],
+            'netBalance' => $data['netBalance'],
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'statement-' . $user->name . '-' . now()->format('Y-m-d') . '.pdf';
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Send statement as email with PDF attachment to the user.
+     */
+    public function sendStatementEmail(Request $request, User $user)
+    {
+        $startDate = $request->has('start_date') ? $request->date('start_date') : null;
+        $endDate = $request->has('end_date') ? $request->date('end_date') : null;
+        $data = $this->getStatementData($user, $startDate, $endDate);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.users.statement-pdf', [
+            'user' => $user,
+            'entries' => $data['entries'],
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'totalCredits' => $data['totalCredits'],
+            'totalDebits' => $data['totalDebits'],
+            'netBalance' => $data['netBalance'],
+        ])->setPaper('a4', 'portrait');
+
+        $pdfContent = $pdf->output();
+        $filename = 'statement-' . preg_replace('/[^a-z0-9_-]/i', '-', $user->name) . '-' . now()->format('Y-m-d') . '.pdf';
+
+        $body = "Dear {$user->name},\n\nPlease find your Priority Bank statement attached to this email.\n\nBest regards,\nPriority Bank";
+        \Illuminate\Support\Facades\Mail::raw($body, function ($message) use ($user, $pdfContent, $filename) {
+            $message->to($user->email)
+                ->subject('Your Priority Bank Statement')
+                ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
+        });
+
+        return redirect()->back()->with('success', 'Statement has been sent to ' . $user->email . '.');
     }
 
     /**
