@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8" x-ignore>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Expense Records</h1>
         <div class="flex gap-3">
@@ -171,37 +171,74 @@
 
 @push('scripts')
 <script>
-// Ensure jQuery is loaded
-if (typeof jQuery === 'undefined') {
-    console.error('jQuery is not loaded!');
-} else {
-    console.log('jQuery version:', jQuery.fn.jquery);
-}
-
-$(document).ready(function() {
+(function() {
+    function openModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+    }
+    function onReady(fn) {
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+    }
+    onReady(function() {
+        var btnCat = document.getElementById('addExpenseCategoryBtn');
+        var btnExp = document.getElementById('addExpenseBtn');
+        if (btnCat) btnCat.addEventListener('click', function() { openModal('expenseCategoryModal'); });
+        if (btnExp) btnExp.addEventListener('click', function() { openModal('expenseModal'); });
+    });
+})();
+</script>
+<script type="application/json" id="expense-page-data">{!! json_encode([
+    'categories' => $categories ?? new \Illuminate\Support\Collection(),
+    'channels' => $channels ?? [],
+    'accounts' => $accounts ?? new \Illuminate\Support\Collection(),
+]) !!}</script>
+<script>
+(function() {
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded!');
+        return;
+    }
+    function safeObject(val) {
+        if (val == null) return {};
+        if (typeof val === 'object' && !Array.isArray(val)) return val;
+        return {};
+    }
+    var categories = {};
+    var channels = {};
+    var accounts = {};
     try {
-        // Safely initialize variables with proper defaults
-        let categories = {};
-        let channels = {};
-        let accounts = {};
-        
-        try {
-            const cats = @json($categories ?? []);
-            const chans = @json($channels ?? []);
-            const accs = @json($accounts ?? []);
-            
-            categories = (cats && typeof cats === 'object' && !Array.isArray(cats)) ? cats : {};
-            channels = (chans && typeof chans === 'object' && !Array.isArray(chans)) ? chans : {};
-            accounts = (accs && typeof accs === 'object' && !Array.isArray(accs)) ? accs : {};
-        } catch(e) {
-            console.error('Error initializing data:', e);
+        var el = document.getElementById('expense-page-data');
+        if (el && el.textContent) {
+            var data = JSON.parse(el.textContent);
+            categories = safeObject(data.categories);
+            channels = safeObject(data.channels);
+            accounts = safeObject(data.accounts);
         }
-        
-        let expenseRowCount = 1;
+    } catch (e) {
+        console.error('Error parsing expense page data:', e);
+    }
+    var expenseRowCount = 1;
+
+    jQuery(document).ready(function() {
+        try {
+    // Show Expense Category Modal
+    $('#addExpenseCategoryBtn').on('click', function() {
+        $('#expenseCategoryModal').removeClass('hidden');
+        $('#category_name').val('');
+        $('#category_name_error').addClass('hidden');
+    });
 
     // Close Expense Category Modal
     $('#closeExpenseCategoryModal, #cancelExpenseCategoryBtn').on('click', function() {
         $('#expenseCategoryModal').addClass('hidden');
+    });
+
+    // Show Expense Modal
+    $('#addExpenseBtn').on('click', function() {
+        $('#expenseModal').removeClass('hidden');
+        expenseRowCount = 1;
+        updateExpenseRemoveButtons();
     });
 
     // Submit Expense Category Form
@@ -388,10 +425,11 @@ $(document).ready(function() {
             $('#alertContainer').html('');
         }, 5000);
     }
-    } catch(e) {
-        console.error('Error in expense page initialization:', e);
-    }
-});
+        } catch(e) {
+            console.error('Error in expense page initialization:', e);
+        }
+    });
+})();
 
 // Always set up modal handlers outside try-catch to ensure they work
 $(document).ready(function() {

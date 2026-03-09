@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\Income;
 use App\Models\Expense;
 use App\Models\Loan;
@@ -10,6 +11,7 @@ use App\Models\Saving;
 use App\Models\LoanRequest;
 use App\Models\Payment;
 use App\Models\GroupFund;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -86,6 +88,31 @@ class DashboardController extends Controller
         $expenseCategoryChart = $this->generateExpenseCategoryChart(null, $thirtyDaysAgo);
         $recentTransactions = $this->getRecentTransactions(null);
 
+        // Your (admin/CEO) balances: Transaction list vs Income/Expense ledger
+        // CEO Total Incomes/Expenses = from Income & Expense ledgers (/incomes, /expenses)
+        $ceoTotalIncome = (float) Income::where('user_id', $user->id)->sum('amount');
+        $ceoTotalExpenses = (float) Expense::where('user_id', $user->id)->sum('amount');
+        $yourBankTransactionBalance = (float) (
+            Transaction::where('user_id', $user->id)->where('type', 'income')->sum('amount') -
+            Transaction::where('user_id', $user->id)->where('type', 'expense')->sum('amount')
+        );
+        $yourIncomeExpenseBalance = (float) Account::where('user_id', $user->id)->get()->sum(fn ($a) => $a->balance);
+        $yourOverallBalance = $yourBankTransactionBalance + $yourIncomeExpenseBalance;
+
+        // CEO Net Balance = Income & Expenditure ledgers summation (from /incomes and /expenses)
+        $ceoLedgerIncome = (float) Income::where('user_id', $user->id)->sum('amount');
+        $ceoLedgerExpense = (float) Expense::where('user_id', $user->id)->sum('amount');
+        $ceoNetBalance = $ceoLedgerIncome - $ceoLedgerExpense;
+
+        // Row 1: Bank totals from all transactions (deposits/savings vs loans/withdrawals)
+        $totalBankDeposits = (float) Transaction::where('type', 'income')->sum('amount');
+        $totalBankWithdrawals = (float) Transaction::where('type', 'expense')->sum('amount');
+        $bankBalance = $totalBankDeposits - $totalBankWithdrawals;
+        $totalTransactionsToday = (int) Transaction::whereRaw('DATE(date) = ?', [Carbon::today()->toDateString()])->count();
+
+        // Money in cofers = Group balance + CEO balance
+        $moneyInCoffers = $bankBalance + $ceoNetBalance;
+
         // AI Insights with Cache
         $aiInsightsService = app(AiInsightsService::class);
         $financialData = [
@@ -103,7 +130,10 @@ class DashboardController extends Controller
             'recentTransactions', 'aiInsights', 'groupFund', 'pendingLoanRequests',
             'totalCreditUnionLoans', 'pendingUsersCount', 'pendingLoanRequestsList',
             'pendingDepositsList', 'pendingDepositsCount',
-            'pendingSavingsList', 'pendingSavingsCount'
+            'pendingSavingsList', 'pendingSavingsCount',
+            'yourBankTransactionBalance', 'yourIncomeExpenseBalance', 'yourOverallBalance',
+            'totalBankDeposits', 'totalBankWithdrawals', 'bankBalance', 'totalTransactionsToday',
+            'ceoTotalIncome', 'ceoTotalExpenses', 'moneyInCoffers', 'ceoNetBalance'
         ));
     }
 

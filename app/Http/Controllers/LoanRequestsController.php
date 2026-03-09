@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\LoanRequest;
 use App\Models\Loan;
 use App\Models\InterestRate;
 use App\Models\GroupFund;
 use App\Models\Transaction;
-use App\Models\SystemRegistry;
 use App\Services\AdminNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class LoanRequestsController extends Controller
 {
@@ -91,7 +92,11 @@ class LoanRequestsController extends Controller
             // If 1% rate doesn't exist, get the first available rate
             $defaultInterestRate = $interestRates->first();
         }
-        return view('loan-requests.show', compact('loanRequest', 'interestRates', 'defaultInterestRate'));
+        $groupFund = GroupFund::getInstance();
+        $groupFund->updateTotals(); // ensure totals are current before showing
+        $availableForLoans = (float) $groupFund->available_for_loans;
+        // Admin can approve from 0 up to full group fund (may approve more than requested if deserved)
+        return view('loan-requests.show', compact('loanRequest', 'interestRates', 'defaultInterestRate', 'groupFund', 'availableForLoans'));
     }
 
     /**
@@ -148,18 +153,16 @@ class LoanRequestsController extends Controller
             abort(403, 'Only administrators can approve loan requests.');
         }
 
+        $groupFund = GroupFund::getInstance();
+        $groupFund->updateTotals();
+        $maxFromFund = (float) $groupFund->available_for_loans;
+
         $request->validate([
-            'amount_approved' => 'required|numeric|min:1|max:' . $loanRequest->amount_requested,
+            'amount_approved' => 'required|numeric|min:1|max:' . $maxFromFund,
             'interest_rate_id' => 'required|exists:interest_rates,id',
         ]);
 
         $interestRate = InterestRate::findOrFail($request->interest_rate_id);
-        $groupFund = GroupFund::getInstance();
-
-        // Check if sufficient funds are available
-        if ($request->amount_approved > $groupFund->available_for_loans) {
-            return back()->withErrors(['amount_approved' => 'Insufficient group funds available.']);
-        }
 
         // Update loan request
         $loanRequest->update([
@@ -169,6 +172,13 @@ class LoanRequestsController extends Controller
             'approved_at' => now(),
             'admin_notes' => $request->admin_notes,
         ]);
+
+        // Resolve account for disbursement (approver's first account or first in system)
+        $account = Account::where('user_id', Auth::id())->first() ?? Account::first();
+        if (!$account) {
+            return redirect()->back()
+                ->withErrors(['account' => 'No account exists. Please create an account first (e.g. under Income/Expense or Settings).']);
+        }
 
         // Create the actual loan
         $totalWithInterest = $request->amount_approved + $interestRate->calculateInterest($request->amount_approved, 30);
@@ -184,6 +194,8 @@ class LoanRequestsController extends Controller
             'status' => 'borrowed',
             'returned_amount' => 0,
             'remaining_balance' => $totalWithInterest,
+            'channel' => 'bank',
+            'account_id' => $account->id,
             'loan_request_id' => $loanRequest->id,
             'interest_rate_id' => $interestRate->id,
             'interest_rate_applied' => $interestRate->rate_percentage,
@@ -240,6 +252,7 @@ class LoanRequestsController extends Controller
 
     /**
      * Record loan payment as transaction (Admin only).
+     * Creates the loan record first if the request was approved but no loan exists (e.g. after a past error).
      */
     public function recordPayment(LoanRequest $loanRequest)
     {
@@ -247,29 +260,60 @@ class LoanRequestsController extends Controller
             abort(403, 'Only administrators can record loan payments.');
         }
 
-        if ($loanRequest->status !== 'approved' || !$loanRequest->loan) {
-            return back()->withErrors(['error' => 'Loan must be approved and created before recording payment.']);
+        if ($loanRequest->status !== 'approved') {
+            return back()->withErrors(['error' => 'Loan request must be approved before recording payment.']);
         }
 
-        // Get Priority Bank source
-        $priorityBank = SystemRegistry::where('system_id', 'priority_bank')->first();
-        
-        if (!$priorityBank) {
-            return back()->withErrors(['error' => 'Priority Bank source not found.']);
+        // If approved but no loan record (e.g. approval failed after updating status), create the loan now
+        if (!$loanRequest->loan) {
+            $groupFund = GroupFund::getInstance();
+            $groupFund->updateTotals();
+            $account = Account::where('user_id', Auth::id())->first() ?? Account::first();
+            if (!$account) {
+                return back()->withErrors(['error' => 'No account exists. Please create an account first (e.g. under Income/Expense or Settings).']);
+            }
+            $interestRate = InterestRate::active()->forLoans()->first();
+            if (!$interestRate) {
+                return back()->withErrors(['error' => 'No active interest rate found. Add one in settings.']);
+            }
+            $totalWithInterest = $loanRequest->amount_approved + $interestRate->calculateInterest($loanRequest->amount_approved, 30);
+            Loan::create([
+                'user_id' => $loanRequest->user_id,
+                'borrower_name' => $loanRequest->user->name,
+                'borrower_phone' => $loanRequest->user->phone,
+                'amount' => $loanRequest->amount_approved,
+                'date_given' => now(),
+                'disbursement_date' => now(),
+                'expected_return_date' => $loanRequest->expected_payback_date,
+                'status' => 'borrowed',
+                'returned_amount' => 0,
+                'remaining_balance' => $totalWithInterest,
+                'channel' => 'bank',
+                'account_id' => $account->id,
+                'loan_request_id' => $loanRequest->id,
+                'interest_rate_id' => $interestRate->id,
+                'interest_rate_applied' => $interestRate->rate_percentage,
+                'total_amount_with_interest' => $totalWithInterest,
+                'loan_type' => 'personal',
+                'is_group_loan' => true,
+                'notes' => $loanRequest->purpose,
+            ]);
+            $groupFund->updateTotals();
+            $loanRequest->refresh();
         }
 
-        // Check if transaction already exists
+        // Check if transaction already exists (same borrower, loan disbursement for this request)
         $existingTransaction = Transaction::where('user_id', $loanRequest->user_id)
             ->where('type', 'expense')
-            ->where('external_system_id', $priorityBank->id)
-            ->where('description', 'like', "%Loan disbursement to {$loanRequest->user->name} - Request #{$loanRequest->id}%")
+            ->where('category', 'Loan Disbursement')
+            ->where('description', 'like', "%Request #{$loanRequest->id}%")
             ->first();
 
         if ($existingTransaction) {
             return back()->withErrors(['error' => 'Transaction for this loan payment has already been recorded.']);
         }
 
-        // Create expense transaction against Priority Bank source
+        // Create expense transaction against the borrower (user who received the loan)
         Transaction::create([
             'user_id' => $loanRequest->user_id,
             'type' => 'expense',
@@ -277,22 +321,18 @@ class LoanRequestsController extends Controller
             'amount' => $loanRequest->amount_approved,
             'date' => now(),
             'description' => "Loan disbursement to {$loanRequest->user->name} - Request #{$loanRequest->id}",
-            'external_system_id' => $priorityBank->id,
+            'external_system_id' => null,
         ]);
 
-        // Update loan disbursement date if loan exists
         if ($loanRequest->loan) {
-            $loanRequest->loan->update([
-                'disbursement_date' => now(),
-            ]);
+            $loanRequest->loan->update(['disbursement_date' => now()]);
         }
 
-        // Notify the user about loan payment recorded
         $userNotificationService = new \App\Services\UserNotificationService();
         $userNotificationService->notifyLoanPaymentRecorded(
             $loanRequest->user,
             $loanRequest->amount_approved,
-            $loanRequest->loan->remaining_balance ?? 0
+            $loanRequest->loan ? $loanRequest->loan->remaining_balance : (float) $loanRequest->amount_approved
         );
 
         return redirect()->route('loan-requests.show', $loanRequest)

@@ -95,4 +95,16 @@ class LoanRequest extends Model
     {
         return $query->where('status', 'approved');
     }
+
+    /**
+     * Check if the disbursement has already been recorded as a transaction.
+     */
+    public function hasDisbursementTransaction(): bool
+    {
+        return \App\Models\Transaction::where('user_id', $this->user_id)
+            ->where('type', 'expense')
+            ->where('category', 'Loan Disbursement')
+            ->where('description', 'like', '%Request #' . $this->id . '%')
+            ->exists();
+    }
 }

@@ -34,7 +34,7 @@ class TransactionController extends Controller
             })
             ->with(['user', 'externalSystem', 'depositSaving'])
             ->latest()
-            ->paginate(15);
+            ->paginate(50);
 
         return view('transactions.index', compact('transactions'));
     }

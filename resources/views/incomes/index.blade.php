@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8" x-ignore>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Income Records</h1>
         <div class="flex gap-3">
@@ -171,34 +171,75 @@
 
 @push('scripts')
 <script>
-// Ensure jQuery is loaded
-if (typeof jQuery === 'undefined') {
-    console.error('jQuery is not loaded!');
-} else {
-    console.log('jQuery version:', jQuery.fn.jquery);
-}
-
-$(document).ready(function() {
+(function() {
+    function openModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+    }
+    function onReady(fn) {
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+    }
+    onReady(function() {
+        var btnCat = document.getElementById('addIncomeCategoryBtn');
+        var btnIncome = document.getElementById('addIncomeBtn');
+        if (btnCat) btnCat.addEventListener('click', function() { openModal('incomeCategoryModal'); });
+        if (btnIncome) btnIncome.addEventListener('click', function() { openModal('incomeModal'); });
+    });
+})();
+</script>
+<script type="application/json" id="income-page-data">{!! json_encode([
+    'categories' => $categories ?? new \Illuminate\Support\Collection(),
+    'channels' => $channels ?? [],
+    'accounts' => $accounts ?? new \Illuminate\Support\Collection(),
+]) !!}</script>
+<script>
+(function() {
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded!');
+        return;
+    }
+    function safeObject(val) {
+        if (val == null) return {};
+        if (typeof val === 'object' && !Array.isArray(val)) return val;
+        return {};
+    }
+    var categories = {};
+    var channels = {};
+    var accounts = {};
     try {
-        // Safely initialize variables with proper defaults
-        let categories = {};
-        let channels = {};
-        let accounts = {};
-        
-        try {
-            const cats = @json($categories ?? []);
-            const chans = @json($channels ?? []);
-            const accs = @json($accounts ?? []);
-            
-            categories = (cats && typeof cats === 'object' && !Array.isArray(cats)) ? cats : {};
-            channels = (chans && typeof chans === 'object' && !Array.isArray(chans)) ? chans : {};
-            accounts = (accs && typeof accs === 'object' && !Array.isArray(accs)) ? accs : {};
-        } catch(e) {
-            console.error('Error initializing data:', e);
+        var el = document.getElementById('income-page-data');
+        if (el && el.textContent) {
+            var data = JSON.parse(el.textContent);
+            categories = safeObject(data.categories);
+            channels = safeObject(data.channels);
+            accounts = safeObject(data.accounts);
         }
-        
-        let incomeRowCount = 1;
+    } catch (e) {
+        console.error('Error parsing income page data:', e);
+    }
+    var incomeRowCount = 1;
 
+    function updateCategoryDropdowns() {
+        var sel = document.querySelectorAll('.income-category-select');
+        if (!sel.length) return;
+        sel.forEach(function(select) {
+            var currentVal = select.value;
+            select.innerHTML = '<option value="">Select Category</option>';
+            if (categories && typeof categories === 'object' && !Array.isArray(categories)) {
+                Object.keys(categories).forEach(function(id) {
+                    var opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = categories[id];
+                    if (id == currentVal) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    jQuery(document).ready(function() {
+        try {
     // Show Income Category Modal
     $('#addIncomeCategoryBtn').on('click', function() {
         $('#incomeCategoryModal').removeClass('hidden');
@@ -401,10 +442,11 @@ $(document).ready(function() {
             $('#alertContainer').html('');
         }, 5000);
     }
-    } catch(e) {
-        console.error('Error in income page initialization:', e);
-    }
-});
+        } catch(e) {
+            console.error('Error in income page initialization:', e);
+        }
+    });
+})();
 
 // Always set up modal handlers outside try-catch to ensure they work
 $(document).ready(function() {

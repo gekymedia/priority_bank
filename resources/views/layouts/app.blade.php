@@ -36,7 +36,9 @@
         $jsFile = $manifest['resources/js/app.js']['file'] ?? 'assets/app.js';
     @endphp
     <link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}">
+    @unless(request()->routeIs('incomes.index') || request()->routeIs('expenses.index'))
     <script src="{{ asset('build/' . $jsFile) }}" defer></script>
+    @endunless
     
     <style>
         :root {
@@ -993,8 +995,8 @@
             const notificationToast = document.getElementById('notificationToast');
             const closeNotificationBtn = document.getElementById('closeNotificationBtn');
             
-            // Fetch categories from database
-            const categories = @json(\App\Models\Category::all()->groupBy(function($category) {
+            // Fetch categories from database (ensure we always have income/expense arrays)
+            const _raw = @json(\App\Models\Category::all()->groupBy(function($category) {
                 if ($category->type === 'both') {
                     return 'both';
                 }
@@ -1002,11 +1004,13 @@
             })->map(function($group) {
                 return $group->pluck('name')->toArray();
             })->toArray());
-            
-            // Merge 'both' categories into income and expense
-            if (categories.both) {
-                categories.income = [...(categories.income || []), ...categories.both];
-                categories.expense = [...(categories.expense || []), ...categories.both];
+            const categories = (typeof _raw === 'object' && _raw !== null) ? _raw : {};
+            if (!Array.isArray(categories.income)) categories.income = [];
+            if (!Array.isArray(categories.expense)) categories.expense = [];
+            if (!Array.isArray(categories.both)) categories.both = [];
+            if (categories.both.length) {
+                categories.income = [...categories.income, ...categories.both];
+                categories.expense = [...categories.expense, ...categories.both];
             }
 
             // Open modal
@@ -1238,9 +1242,10 @@
                 if (categorySelect) {
                     categorySelect.innerHTML = '<option value="">Select Category</option>';
                     
-                    if (selectedType && categories[selectedType]) {
+                    const arr = (selectedType && categories && Array.isArray(categories[selectedType])) ? categories[selectedType] : [];
+                    if (arr.length) {
                         // Remove duplicates and sort
-                        const uniqueCategories = [...new Set(categories[selectedType])].sort();
+                        const uniqueCategories = [...new Set(arr)].sort();
                         uniqueCategories.forEach(category => {
                             const option = document.createElement('option');
                             option.value = category;

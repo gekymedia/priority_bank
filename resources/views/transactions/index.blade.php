@@ -14,6 +14,12 @@
         @endif
     </div>
 
+    <!-- Search: filter on page as you type -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+        <label for="transactionSearch" class="block text-sm font-medium text-gray-700 mb-2">Search (filters all columns as you type)</label>
+        <input type="text" id="transactionSearch" placeholder="Search date, user, type, description, category, amount…" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+    </div>
+
     <!-- Transaction Filters -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
         <form method="GET" action="{{ route('transactions.index') }}">
@@ -73,7 +79,15 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($transactions as $transaction)
-                    <tr>
+                    <tr class="transaction-row" data-search="{{ strtolower(implode(' ', array_filter([
+                        $transaction->date->format('M d Y'),
+                        $transaction->user?->name ?? '',
+                        $transaction->type,
+                        $transaction->description ?? '',
+                        $transaction->category ?? '',
+                        (string) $transaction->amount,
+                        $transaction->externalSystem?->name ?? ''
+                    ]))) }}">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $transaction->date->format('M d, Y') }}
                         </td>
@@ -163,6 +177,19 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Live search: filter table rows by all columns as user types
+        var searchInput = document.getElementById('transactionSearch');
+        var rows = document.querySelectorAll('.transaction-row');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var q = (this.value || '').toLowerCase().trim();
+                rows.forEach(function(tr) {
+                    var text = (tr.getAttribute('data-search') || '').toLowerCase();
+                    tr.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
+                });
+            });
+        }
+
         @if(Auth::user()->isAdmin())
         // Open transaction modal from page button
         const newTransactionBtnFromPage = document.getElementById('newTransactionBtnFromPage');

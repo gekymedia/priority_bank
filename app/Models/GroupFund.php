@@ -48,7 +48,8 @@ class GroupFund extends Model
      */
     public function updateTotals()
     {
-        $this->total_savings = \App\Models\Saving::where('status', 'available')->sum('amount');
+        // Saving model uses status 'successful' for approved deposits (not 'available')
+        $this->total_savings = \App\Models\Saving::where('status', 'successful')->sum('amount');
         $this->total_loaned = \App\Models\Loan::where('is_group_loan', true)
                                               ->where('status', 'borrowed')
                                               ->sum('amount');

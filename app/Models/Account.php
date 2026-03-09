@@ -56,6 +56,23 @@ class Account extends Model
     }
 
     /**
+     * Ensure the user has at least one account; create a default "Main account" if none exist.
+     * Call this before loading accounts for income/expense forms so dropdowns are never empty.
+     */
+    public static function ensureDefaultForUser(int $userId): void
+    {
+        if (static::where('user_id', $userId)->exists()) {
+            return;
+        }
+        static::create([
+            'user_id' => $userId,
+            'name' => 'Main account',
+            'type' => 'other',
+            'opening_balance' => 0,
+        ]);
+    }
+
+    /**
      * Calculate the current balance by summing incomes and subtracting expenses and loans.
      */
     public function getBalanceAttribute(): float

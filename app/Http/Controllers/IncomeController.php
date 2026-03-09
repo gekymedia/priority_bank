@@ -21,7 +21,8 @@ class IncomeController extends Controller
             ->with(['category', 'account'])
             ->latest()->paginate(10);
         
-        // Get data for modals
+        // Get data for modals (ensure user has at least one account so dropdown is not empty)
+        Account::ensureDefaultForUser(Auth::id());
         $categories = IncomeCategory::whereNull('user_id')
             ->orWhere('user_id', Auth::id())
             ->orderBy('name')
@@ -38,6 +39,7 @@ class IncomeController extends Controller
      */
     public function create()
     {
+        Account::ensureDefaultForUser(Auth::id());
         // Fetch available categories (global or user-specific) and accounts
         $categories = IncomeCategory::whereNull('user_id')
             ->orWhere('user_id', Auth::id())
@@ -80,7 +82,7 @@ class IncomeController extends Controller
                     'notes' => $incomeData['notes'] ?? null,
                     'external_system_id' => $incomeData['external_system_id'] ?? null,
                     'external_transaction_id' => isset($incomeData['external_system_id']) ? 'pb_' . time() . '_' . Auth::id() . '_' . $savedCount : null,
-                    'sync_status' => isset($incomeData['external_system_id']) ? 'pending' : null,
+                    'sync_status' => 'pending',
                 ]);
 
                 // If external system is selected, push to that system
@@ -125,7 +127,7 @@ class IncomeController extends Controller
                 'notes' => $request->notes,
                 'external_system_id' => $request->external_system_id,
                 'external_transaction_id' => $request->external_system_id ? 'pb_' . time() . '_' . Auth::id() : null,
-                'sync_status' => $request->external_system_id ? 'pending' : null,
+                'sync_status' => 'pending',
             ]);
 
             // If external system is selected, push to that system

@@ -24,14 +24,13 @@
         </div>
     @endif
 
-    <!-- Admin Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Income -->
-        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+    <!-- Row 1: Bank totals from transactions (Deposits/Savings, Loans/Withdrawals, Balance, Transactions Today) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <a href="{{ route('transactions.index', ['type' => 'income']) }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-gray-500 font-medium">Total Income</p>
-                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalIncome, 2) }}</h2>
+                    <p class="text-gray-500 font-medium">Total Deposits / Savings</p>
+                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalBankDeposits, 2) }}</h2>
                 </div>
                 <div class="bg-blue-100 p-3 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -39,15 +38,13 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">Last 30 days</p>
-        </div>
-
-        <!-- Total Expenses -->
-        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+            <p class="text-sm text-gray-500 mt-2">From Group bank transactions (income)</p>
+        </a>
+        <a href="{{ route('transactions.index', ['type' => 'expense']) }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-gray-500 font-medium">Total Expenses</p>
-                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalExpenses, 2) }}</h2>
+                    <p class="text-gray-500 font-medium">Total Loans / Withdrawals</p>
+                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalBankWithdrawals, 2) }}</h2>
                 </div>
                 <div class="bg-red-100 p-3 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -55,31 +52,13 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">Last 30 days</p>
-        </div>
-
-        <!-- Active Loans -->
-        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+            <p class="text-sm text-gray-500 mt-2">From Group bank transactions (expense)</p>
+        </a>
+        <a href="{{ route('transactions.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-gray-500 font-medium">Active Loans</p>
-                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($activeLoans, 2) }}</h2>
-                </div>
-                <div class="bg-yellow-100 p-3 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            </div>
-            <p class="text-sm text-gray-500 mt-2">{{ $loansCount }} outstanding</p>
-        </div>
-
-        <!-- Net Balance -->
-        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-gray-500 font-medium">Net Balance</p>
-                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($netBalance, 2) }}</h2>
+                    <p class="text-gray-500 font-medium">Group Balance</p>
+                    <h2 class="text-2xl font-bold mt-2 {{ $bankBalance >= 0 ? 'text-gray-900' : 'text-red-600' }}">GHS {{ number_format($bankBalance, 2) }}</h2>
                 </div>
                 <div class="bg-green-100 p-3 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,12 +66,8 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">Current available</p>
-        </div>
-    </div>
-
-    <!-- Credit Union Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <p class="text-sm text-gray-500 mt-2">Group deposits minus group withdrawals</p>
+        </a>
         <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
             <div class="flex justify-between items-start">
                 <div>
@@ -106,6 +81,101 @@
                 </div>
             </div>
             <p class="text-sm text-gray-500 mt-2">Available for loans</p>
+        </div>
+    </div>
+
+    <!-- Row 2: CEO Personal (Total Incomes, Total Expenses, Net Balance, Money in Coffers) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <a href="{{ route('incomes.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">CEO Total Incomes</p>
+                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($ceoTotalIncome, 2) }}</h2>
+                </div>
+                <div class="bg-emerald-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">From Income ledger</p>
+        </a>
+        <a href="{{ route('expenses.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-rose-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">CEO Total Expenses</p>
+                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($ceoTotalExpenses, 2) }}</h2>
+                </div>
+                <div class="bg-rose-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">From Expense ledger</p>
+        </a>
+        <a href="{{ route('transactions.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-amber-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">CEO Net Balance</p>
+                    <h2 class="text-2xl font-bold mt-2 {{ $ceoNetBalance >= 0 ? 'text-gray-900' : 'text-red-600' }}">GHS {{ number_format($ceoNetBalance, 2) }}</h2>
+                </div>
+                <div class="bg-amber-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Income &amp; Expenditure ledgers (Incomes − Expenses)</p>
+        </a>
+        <a href="{{ route('transactions.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">Money in Coffers</p>
+                    <h2 class="text-2xl font-bold mt-2 {{ $moneyInCoffers >= 0 ? 'text-gray-900' : 'text-red-600' }}">GHS {{ number_format($moneyInCoffers, 2) }}</h2>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Group balance + CEO balance (in cofers)</p>
+        </a>
+    </div>
+
+    <hr class="border-gray-300 my-8" />
+
+    <!-- Credit Union Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <a href="{{ route('transactions.index', ['start_date' => now()->toDateString(), 'end_date' => now()->toDateString()]) }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">Total Transactions Today</p>
+                    <h2 class="text-2xl font-bold mt-2">{{ number_format($totalTransactionsToday) }}</h2>
+                </div>
+                <div class="bg-indigo-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Count for today</p>
+        </a>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 font-medium">Total Credit Union Loans</p>
+                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalCreditUnionLoans, 2) }}</h2>
+                </div>
+                <div class="bg-indigo-100 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Active group loans</p>
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
@@ -126,21 +196,6 @@
                     View Requests →
                 </a>
             @endif
-        </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-gray-500 font-medium">Total Credit Union Loans</p>
-                    <h2 class="text-2xl font-bold mt-2">GHS {{ number_format($totalCreditUnionLoans, 2) }}</h2>
-                </div>
-                <div class="bg-indigo-100 p-3 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            </div>
-            <p class="text-sm text-gray-500 mt-2">Active group loans</p>
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-teal-500">
