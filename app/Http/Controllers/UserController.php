@@ -25,7 +25,8 @@ class UserController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('account_id', 'like', "%{$search}%");
             });
         }
 
@@ -61,6 +62,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'phone' => ['required', 'string', 'max:20', 'unique:users'],
+            'account_id' => ['nullable', 'string', 'max:100'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
             'preferred_currency' => ['nullable', 'string', 'max:10'],
@@ -71,6 +73,7 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
+            'account_id' => $validated['account_id'] ?? null,
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'preferred_currency' => $validated['preferred_currency'] ?? 'GHS',
@@ -260,6 +263,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
+            'account_id' => ['nullable', 'string', 'max:100'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
             'preferred_currency' => ['nullable', 'string', 'max:10'],
@@ -268,6 +272,7 @@ class UserController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->phone = $validated['phone'] ?? null;
+        $user->account_id = $validated['account_id'] ?? null;
         $user->role = $validated['role'];
         $user->preferred_currency = $validated['preferred_currency'] ?? 'GHS';
 

@@ -31,6 +31,11 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-500">Account Id</label>
+                    <p class="mt-1 text-lg text-gray-900 font-mono">{{ $user->account_id ?? '—' }}</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-500">Role</label>
                     <span class="mt-1 inline-flex px-3 py-1 text-sm font-semibold rounded-full {{ $user->role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' }}">
                         {{ ucfirst($user->role) }}

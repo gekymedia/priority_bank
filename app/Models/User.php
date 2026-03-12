@@ -35,6 +35,7 @@ class User extends Authenticatable
         'password',
         'profile_photo_path',
         'phone',
+        'account_id',
         'preferred_currency',
         'notification_email',
         'notification_browser',
