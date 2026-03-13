@@ -40,7 +40,7 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
-        $users = $query->latest()->paginate(15);
+        $users = $query->latest()->paginate(50);
 
         return view('admin.users.index', compact('users'));
     }
