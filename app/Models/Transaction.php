@@ -23,6 +23,7 @@ class Transaction extends Model
         'description',
         'notes',
         'external_system_id',
+        'external_transaction_id',
         'saving_id',
     ];
 

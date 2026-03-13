@@ -40,6 +40,7 @@ Route::prefix('transactions')->middleware('auth:sanctum')->group(function () {
 // Central Finance API - Public endpoints for external systems
 // These use token-based authentication (API tokens, not user sessions)
 Route::prefix('central-finance')->middleware('auth:sanctum')->group(function () {
+    Route::get('/balance', [CentralFinanceApiController::class, 'balance']);
     Route::post('/income', [CentralFinanceApiController::class, 'storeIncome']);
     Route::post('/expense', [CentralFinanceApiController::class, 'storeExpense']);
 });

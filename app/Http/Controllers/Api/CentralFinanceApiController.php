@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Income;
 use App\Models\Expense;
+use App\Models\Transaction;
 use App\Models\SystemRegistry;
 use App\Models\IncomeCategory;
 use App\Models\ExpenseCategory;
@@ -148,6 +149,21 @@ class CentralFinanceApiController extends Controller
                 'synced_at' => now(),
             ]);
 
+            // Also create a Transaction so it appears in the bank's Transactions list
+            $categoryName = $incomeCategoryId ? (IncomeCategory::find($incomeCategoryId)?->name) : null;
+            $categoryName = $categoryName ?? ($validated['income_category_name'] ?? 'Income');
+            Transaction::create([
+                'user_id' => $userId,
+                'type' => 'income',
+                'category' => $categoryName,
+                'amount' => $validated['amount'],
+                'date' => $validated['date'],
+                'description' => $validated['notes'] ?? $categoryName,
+                'notes' => null,
+                'external_system_id' => $system->id,
+                'external_transaction_id' => $validated['external_transaction_id'],
+            ]);
+
             DB::commit();
 
             Log::info('Income recorded from external system', [
@@ -282,6 +298,21 @@ class CentralFinanceApiController extends Controller
                 'synced_at' => now(),
             ]);
 
+            // Also create a Transaction so it appears in the bank's Transactions list
+            $expCategoryName = $expenseCategoryId ? (ExpenseCategory::find($expenseCategoryId)?->name) : null;
+            $expCategoryName = $expCategoryName ?? ($validated['expense_category_name'] ?? 'Expense');
+            Transaction::create([
+                'user_id' => $userId,
+                'type' => 'expense',
+                'category' => $expCategoryName,
+                'amount' => $validated['amount'],
+                'date' => $validated['date'],
+                'description' => $validated['notes'] ?? $expCategoryName,
+                'notes' => null,
+                'external_system_id' => $system->id,
+                'external_transaction_id' => $validated['external_transaction_id'],
+            ]);
+
             DB::commit();
 
             Log::info('Expense recorded from external system', [
@@ -309,6 +340,36 @@ class CentralFinanceApiController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
+    }
+
+    /**
+     * Return net balance for the authenticated caller (same as statement "Net balance").
+     * GET /api/central-finance/balance
+     *
+     * The Bearer token identifies one user in the bank (e.g. Priority Agriculture, GekyChat,
+     * SchoolsGH). Net is computed as Total credits (income transactions) minus Total debits
+     * (expense transactions) for that user — matching the bank statement "Net balance".
+     */
+    public function balance(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        // Net = Total credits - Total debits (same as statement "Net balance")
+        $credits = (float) Transaction::where('user_id', $user->id)->where('type', 'income')->sum('amount');
+        $debits = (float) Transaction::where('user_id', $user->id)->where('type', 'expense')->sum('amount');
+        $netBalance = $credits - $debits;
+
+        return response()->json([
+            'success' => true,
+            'balance' => round($netBalance, 2),
+            'currency' => 'GHS',
+        ]);
     }
 
     /**

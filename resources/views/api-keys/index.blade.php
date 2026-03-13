@@ -21,13 +21,51 @@
         <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
             <p class="font-bold">Your new API key (copy this - it won't be shown again):</p>
             <div class="mt-2 flex items-center gap-2">
-                <code class="bg-yellow-200 px-2 py-1 rounded flex-1 font-mono">{{ session('token') }}</code>
-                <button onclick="navigator.clipboard.writeText('{{ session('token') }}')" 
-                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded">
-                    Copy
+                <input type="text" id="new-api-token-value" readonly
+                       value="{{ session('token') }}"
+                       class="bg-yellow-200 px-2 py-1 rounded flex-1 font-mono border-0 text-yellow-900 w-full">
+                <button type="button" id="copy-api-token-btn"
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded flex items-center gap-1 shrink-0">
+                    <i class="fas fa-copy" id="copy-api-token-icon"></i>
+                    <span id="copy-api-token-label">Copy</span>
                 </button>
             </div>
         </div>
+        <script>
+        (function() {
+            var btn = document.getElementById('copy-api-token-btn');
+            var input = document.getElementById('new-api-token-value');
+            var icon = document.getElementById('copy-api-token-icon');
+            var label = document.getElementById('copy-api-token-label');
+            if (!btn || !input) return;
+            btn.addEventListener('click', function() {
+                var token = input.value;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(token).then(function() {
+                        label.textContent = 'Copied!';
+                        icon.className = 'fas fa-check';
+                        setTimeout(function() { label.textContent = 'Copy'; icon.className = 'fas fa-copy'; }, 2000);
+                    }).catch(function() {
+                        fallbackCopy(token);
+                    });
+                } else {
+                    fallbackCopy(token);
+                }
+            });
+            function fallbackCopy(text) {
+                input.select();
+                input.setSelectionRange(0, 99999);
+                try {
+                    document.execCommand('copy');
+                    label.textContent = 'Copied!';
+                    icon.className = 'fas fa-check';
+                    setTimeout(function() { label.textContent = 'Copy'; icon.className = 'fas fa-copy'; }, 2000);
+                } catch (e) {
+                    label.textContent = 'Select & copy';
+                }
+            }
+        })();
+        </script>
     @endif
 
     <!-- All Sources List -->
