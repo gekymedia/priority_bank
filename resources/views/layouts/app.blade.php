@@ -614,11 +614,40 @@
                         <span>User Management</span>
                     </a>
                 </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-link {{ request()->routeIs('admin.fund-sources.*') ? 'active' : '' }}">
+                @php
+                    $routeUser = request()->routeIs('admin.users.show') ? request()->routeParameter('user') : null;
+                    $currentUserId = $routeUser ? (is_object($routeUser) ? $routeUser->id : $routeUser) : null;
+                    $subaccountsActive = request()->routeIs('admin.fund-sources.*') || ($currentUserId && ($sidebarSubaccounts ?? collect())->contains('user_id', $currentUserId));
+                @endphp
+                <div class="sidebar-group {{ $subaccountsActive ? 'open' : '' }}" id="sidebarSubaccountsGroup">
+                    <button type="button" class="sidebar-group-header" aria-expanded="{{ $subaccountsActive ? 'true' : 'false' }}" aria-controls="sidebarSubaccountsContent" id="sidebarSubaccountsToggle">
                         <i class="fas fa-coins"></i>
                         <span>SubAccounts</span>
-                    </a>
+                        <i class="fas fa-chevron-down sidebar-group-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="sidebar-group-content {{ $subaccountsActive ? '' : 'collapsed' }}" id="sidebarSubaccountsContent">
+                        <div class="sidebar-submenu-item">
+                            <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-link {{ request()->routeIs('admin.fund-sources.*') ? 'active' : '' }}">
+                                <i class="fas fa-th-list"></i>
+                                <span>All SubAccounts</span>
+                            </a>
+                        </div>
+                        @foreach($sidebarSubaccounts ?? [] as $source)
+                            <div class="sidebar-submenu-item">
+                                @if($source->user_id && $source->user)
+                                    <a href="{{ route('admin.users.show', $source->user) }}" class="sidebar-link {{ $currentUserId === $source->user_id ? 'active' : '' }}">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span>{{ $source->name }}</span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-link">
+                                        <i class="fas fa-coins"></i>
+                                        <span>{{ $source->name }}</span>
+                                    </a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="sidebar-menu-item">
                     <a href="{{ route('savings.index', ['approval' => 'pending']) }}" class="sidebar-link {{ request()->routeIs('savings.*') && request()->get('approval') === 'pending' ? 'active' : '' }}">
@@ -1025,6 +1054,20 @@
                 }
             });
         });
+
+        // SubAccounts collapsible
+        (function() {
+            const toggle = document.getElementById('sidebarSubaccountsToggle');
+            const group = document.getElementById('sidebarSubaccountsGroup');
+            const content = document.getElementById('sidebarSubaccountsContent');
+            if (toggle && group && content) {
+                toggle.addEventListener('click', function() {
+                    group.classList.toggle('open');
+                    content.classList.toggle('collapsed');
+                    toggle.setAttribute('aria-expanded', content.classList.contains('collapsed') ? 'false' : 'true');
+                });
+            }
+        })();
 
         // Settings & Logs collapsible
         (function() {

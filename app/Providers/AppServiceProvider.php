@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Queue jobs counts for admin sidebar (cached 30s)
+        // Queue jobs counts and sidebar subaccounts for admin
         View::composer('layouts.app', function ($view) {
             try {
                 $connection = config('queue.default');
@@ -61,6 +61,16 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable $e) {
                 $view->with('pendingJobsCount', 0);
                 $view->with('failedJobsCount', 0);
+            }
+
+            if (auth()->check() && auth()->user()->isAdmin()) {
+                $sidebarSubaccounts = \App\Models\SystemRegistry::active()
+                    ->with('user')
+                    ->orderBy('name')
+                    ->get();
+                $view->with('sidebarSubaccounts', $sidebarSubaccounts);
+            } else {
+                $view->with('sidebarSubaccounts', collect());
             }
         });
     }
