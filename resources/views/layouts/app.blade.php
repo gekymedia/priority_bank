@@ -205,6 +205,33 @@
             border-radius: 0 4px 4px 0;
         }
 
+        /* Collapsible sidebar group */
+        .sidebar-group { margin: 0.5rem 1rem; }
+        .sidebar-group-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 14px 20px;
+            color: var(--gray-700);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .sidebar-group-header i { width: 24px; text-align: center; font-size: 18px; color: var(--gray-500); transition: var(--transition); }
+        .sidebar-group-header:hover { background: rgba(79, 70, 229, 0.08); color: var(--primary); }
+        .sidebar-group-header:hover i { color: var(--primary); }
+        .sidebar-group-header .sidebar-group-chevron { margin-left: auto; font-size: 12px; color: var(--gray-500); transition: transform 0.2s ease; }
+        .sidebar-group.open .sidebar-group-chevron { transform: rotate(180deg); }
+        .sidebar-group-content { overflow: hidden; }
+        .sidebar-group-content.collapsed { display: none; }
+        .sidebar-submenu-item { margin: 0 0 0 1.5rem; }
+        .sidebar-submenu-item .sidebar-link { padding: 10px 16px; font-size: 0.9rem; }
+
         .sidebar-footer {
             padding: 1.5rem;
             border-top: 1px solid rgba(79, 70, 229, 0.1);
@@ -588,6 +615,12 @@
                     </a>
                 </div>
                 <div class="sidebar-menu-item">
+                    <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-link {{ request()->routeIs('admin.fund-sources.*') ? 'active' : '' }}">
+                        <i class="fas fa-coins"></i>
+                        <span>SubAccounts</span>
+                    </a>
+                </div>
+                <div class="sidebar-menu-item">
                     <a href="{{ route('savings.index', ['approval' => 'pending']) }}" class="sidebar-link {{ request()->routeIs('savings.*') && request()->get('approval') === 'pending' ? 'active' : '' }}">
                         <i class="fas fa-clipboard-check"></i>
                         <span>Pre-approval</span>
@@ -652,21 +685,9 @@
                         <span>Expenses</span>
                     </a>
                 </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('accounts.index') }}" class="sidebar-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
-                        <i class="fas fa-wallet"></i>
-                        <span>Accounts</span>
-                    </a>
-                </div>
             @endif
             
             @if(auth()->user()->isAdmin())
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-link {{ request()->routeIs('admin.fund-sources.*') ? 'active' : '' }}">
-                        <i class="fas fa-coins"></i>
-                        <span>Fund Sources</span>
-                    </a>
-                </div>
                 <div class="sidebar-menu-item">
                     <a href="{{ route('api-keys.index') }}" class="sidebar-link {{ request()->routeIs('api-keys.*') ? 'active' : '' }}">
                         <i class="fas fa-key"></i>
@@ -679,32 +700,44 @@
                         <span>Insights & Recommendations</span>
                     </a>
                 </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('admin.payment-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.payment-settings.*') ? 'active' : '' }}">
-                        <i class="fas fa-credit-card"></i>
-                        <span>Payment Settings</span>
-                    </a>
-                </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('admin.notification-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.notification-settings.*') ? 'active' : '' }}">
-                        <i class="fas fa-bell"></i>
-                        <span>Notification Settings</span>
-                    </a>
-                </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('admin.logs.index') }}" class="sidebar-link {{ request()->routeIs('admin.logs.*') ? 'active' : '' }}">
-                        <i class="fas fa-file-alt"></i>
-                        <span>System Logs</span>
-                    </a>
-                </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('admin.queue-jobs.index') }}" class="sidebar-link {{ request()->routeIs('admin.queue-jobs.*') ? 'active' : '' }}">
-                        <i class="fas fa-list-alt"></i>
-                        <span>Queued Jobs</span>
-                        @if(($pendingJobsCount ?? 0) > 0 || ($failedJobsCount ?? 0) > 0)
-                            <span class="ml-2 px-1.5 py-0.5 text-xs rounded {{ ($failedJobsCount ?? 0) > 0 ? 'bg-red-500' : 'bg-amber-500' }} text-white">{{ ($pendingJobsCount ?? 0) + ($failedJobsCount ?? 0) }}</span>
-                        @endif
-                    </a>
+                @php
+                    $settingsLogsActive = request()->routeIs('admin.payment-settings.*') || request()->routeIs('admin.notification-settings.*') || request()->routeIs('admin.logs.*') || request()->routeIs('admin.queue-jobs.*');
+                @endphp
+                <div class="sidebar-group {{ $settingsLogsActive ? 'open' : '' }}" id="sidebarSettingsLogsGroup">
+                    <button type="button" class="sidebar-group-header" aria-expanded="{{ $settingsLogsActive ? 'true' : 'false' }}" aria-controls="sidebarSettingsLogsContent" id="sidebarSettingsLogsToggle">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings & Logs</span>
+                        <i class="fas fa-chevron-down sidebar-group-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="sidebar-group-content {{ $settingsLogsActive ? '' : 'collapsed' }}" id="sidebarSettingsLogsContent">
+                        <div class="sidebar-submenu-item">
+                            <a href="{{ route('admin.payment-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.payment-settings.*') ? 'active' : '' }}">
+                                <i class="fas fa-credit-card"></i>
+                                <span>Payment Settings</span>
+                            </a>
+                        </div>
+                        <div class="sidebar-submenu-item">
+                            <a href="{{ route('admin.notification-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.notification-settings.*') ? 'active' : '' }}">
+                                <i class="fas fa-bell"></i>
+                                <span>Notification Settings</span>
+                            </a>
+                        </div>
+                        <div class="sidebar-submenu-item">
+                            <a href="{{ route('admin.logs.index') }}" class="sidebar-link {{ request()->routeIs('admin.logs.*') ? 'active' : '' }}">
+                                <i class="fas fa-file-alt"></i>
+                                <span>System Logs</span>
+                            </a>
+                        </div>
+                        <div class="sidebar-submenu-item">
+                            <a href="{{ route('admin.queue-jobs.index') }}" class="sidebar-link {{ request()->routeIs('admin.queue-jobs.*') ? 'active' : '' }}">
+                                <i class="fas fa-list-alt"></i>
+                                <span>Queued Jobs</span>
+                                @if(($pendingJobsCount ?? 0) > 0 || ($failedJobsCount ?? 0) > 0)
+                                    <span class="ml-2 px-1.5 py-0.5 text-xs rounded {{ ($failedJobsCount ?? 0) > 0 ? 'bg-red-500' : 'bg-amber-500' }} text-white">{{ ($pendingJobsCount ?? 0) + ($failedJobsCount ?? 0) }}</span>
+                                @endif
+                            </a>
+                        </div>
+                    </div>
                 </div>
             @endif
             
@@ -992,6 +1025,20 @@
                 }
             });
         });
+
+        // Settings & Logs collapsible
+        (function() {
+            const toggle = document.getElementById('sidebarSettingsLogsToggle');
+            const group = document.getElementById('sidebarSettingsLogsGroup');
+            const content = document.getElementById('sidebarSettingsLogsContent');
+            if (toggle && group && content) {
+                toggle.addEventListener('click', function() {
+                    group.classList.toggle('open');
+                    content.classList.toggle('collapsed');
+                    toggle.setAttribute('aria-expanded', content.classList.contains('collapsed') ? 'false' : 'true');
+                });
+            }
+        })();
 
         // Transaction Modal and AJAX Submission
         @if(auth()->user()->isAdmin())
