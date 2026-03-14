@@ -62,6 +62,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'update'])->name('sources.update');
     Route::delete('sources/{systemRegistry}', [\App\Http\Controllers\SystemRegistryController::class, 'destroy'])->name('sources.destroy');
     Route::post('sources/{systemRegistry}/create-user', [\App\Http\Controllers\SystemRegistryController::class, 'createUser'])->name('sources.create-user');
+    Route::post('sources/{systemRegistry}/link-user', [\App\Http\Controllers\SystemRegistryController::class, 'linkUser'])->name('sources.link-user');
     
     // Payment Settings (Hubtel & Paystack; Hubtel takes precedence when both configured)
     Route::get('/payment-settings', [\App\Http\Controllers\Admin\PaymentSettingsController::class, 'index'])->name('payment-settings.index');
@@ -117,8 +118,6 @@ Route::middleware(['auth', 'approved'])->group(function () {
     Route::get('/api-keys/documentation', [\App\Http\Controllers\ApiKeyController::class, 'documentation'])->name('api-keys.documentation');
 
     // Resource routes for financial modules
-    Route::resource('incomes', \App\Http\Controllers\IncomeController::class);
-    Route::resource('expenses', \App\Http\Controllers\ExpenseController::class);
     Route::resource('loans', \App\Http\Controllers\LoanController::class);
     Route::post('loans/{loan}/return', [\App\Http\Controllers\LoanController::class, 'markReturned'])->name('loans.return');
     Route::post('loans/{loan}/lost', [\App\Http\Controllers\LoanController::class, 'markLost'])->name('loans.lost');
@@ -127,10 +126,6 @@ Route::middleware(['auth', 'approved'])->group(function () {
     // Existing transactions resource
     Route::resource('transactions', \App\Http\Controllers\TransactionController::class);
 
-    // Category Management routes
-    Route::resource('income-categories', \App\Http\Controllers\IncomeCategoryController::class)->except(['show']);
-    Route::resource('expense-categories', \App\Http\Controllers\ExpenseCategoryController::class)->except(['show']);
-    
     // Unified Category Management (Admin only)
     Route::middleware('admin')->group(function () {
         Route::resource('categories', \App\Http\Controllers\CategoryController::class)->except(['show', 'create', 'edit']);

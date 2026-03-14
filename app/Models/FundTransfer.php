@@ -16,7 +16,6 @@ class FundTransfer extends Model
         'to_system_id',
         'amount',
         'notes',
-        'expense_id',
         'created_by',
     ];
 
@@ -30,14 +29,6 @@ class FundTransfer extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Get the expense record associated with this transfer.
-     */
-    public function expense()
-    {
-        return $this->belongsTo(Expense::class);
     }
 
     /**

@@ -2,13 +2,25 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Source Keys Management</h1>
-        <button onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-            <i class="fas fa-plus mr-2"></i>
-            Create New Source Key
-        </button>
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <h1 class="text-2xl font-bold">Accounts API keys Management</h1>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('api-keys.documentation') }}" 
+               class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+                <i class="fas fa-book mr-2"></i>
+                View API Documentation →
+            </a>
+            <button type="button" onclick="openSourceModal()" 
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                Add new source
+            </button>
+            <button type="button" onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+                <i class="fas fa-key mr-2"></i>
+                Create New API Key
+            </button>
+        </div>
     </div>
 
     @if(session('success'))
@@ -68,14 +80,10 @@
         </script>
     @endif
 
-    <!-- All Sources List -->
+    <!-- All System Accounts -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 class="text-lg font-semibold text-gray-900">All Sources</h2>
-            <button onclick="openSourceModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-                <i class="fas fa-plus mr-2"></i>
-                Add New Source
-            </button>
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">All System Accounts</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -84,10 +92,11 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">API Keys</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone / Account Number</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protected</th>
+                        {{-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protected</th> --}}
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Callback URL</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -95,6 +104,17 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($systems as $system)
+                    @php
+                        $linkedTokens = $tokens->filter(fn($t) => ($system->metadata['api_token_id'] ?? null) == $t->id);
+                        $apiKeysCount = $linkedTokens->count();
+                        $tokensForModal = $linkedTokens->map(fn($t) => [
+                            'id' => $t->id,
+                            'name' => $t->name,
+                            'created_at' => $t->created_at->format('M d, Y H:i'),
+                            'last_used_at' => $t->last_used_at ? $t->last_used_at->format('M d, Y H:i') : 'Never',
+                            'expires_at' => $t->expires_at ? $t->expires_at->format('M d, Y') : null,
+                        ])->values();
+                    @endphp
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $system->name }}</div>
@@ -110,6 +130,14 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            <button type="button"
+                                    onclick="openApiKeysModal('{{ addslashes(e($system->name)) }}', {{ json_encode($tokensForModal) }})"
+                                    class="inline-flex items-center px-2.5 py-1 rounded text-sm font-medium {{ $apiKeysCount > 0 ? 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200' : 'bg-gray-100 text-gray-500' }}"
+                                    title="View API keys for this account">
+                                <i class="fas fa-key mr-1"></i>{{ $apiKeysCount }}
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-700">{{ $system->user?->phone ?? $system->account_number ?? '—' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -117,7 +145,8 @@
                                 {{ ucfirst($system->type) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        {{-- Status --}}
+                        {{-- <td class="px-6 py-4 whitespace-nowrap">
                             @if($system->active_status)
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     Active
@@ -136,7 +165,7 @@
                             @else
                                 <span class="text-sm text-gray-500">-</span>
                             @endif
-                        </td>
+                        </td> --}}
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-500">
                                 @if($system->callback_url)
@@ -156,13 +185,12 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex flex-wrap items-center gap-2">
                                 @if(!$system->user_id)
-                                    <form action="{{ route('admin.sources.create-user', $system) }}" method="POST" class="inline" 
-                                          onsubmit="return confirm('Create a system user account and link it to this source?');">
-                                        @csrf
-                                        <button type="submit" class="text-indigo-600 hover:text-indigo-900 whitespace-nowrap" title="Create user account and link to this source">
-                                            <i class="fas fa-user-plus mr-1"></i>Create user & link
-                                        </button>
-                                    </form>
+                                    <button type="button" class="link-account-btn text-indigo-600 hover:text-indigo-900 whitespace-nowrap" title="Link an account to this source"
+                                            data-system-name="{{ $system->name }}"
+                                            data-create-url="{{ route('admin.sources.create-user', $system) }}"
+                                            data-link-url="{{ route('admin.sources.link-user', $system) }}">
+                                        <i class="fas fa-user-plus mr-1"></i>Create user & link
+                                    </button>
                                 @endif
                                 {{-- Generate API Key button --}}
                                 <button onclick="generateKeyForSource('{{ $system->system_id }}', '{{ $system->name }}', '{{ $system->callback_url ?? '' }}')" 
@@ -192,8 +220,8 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">
-                            No sources found.
+                        <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
+                            No system accounts found.
                         </td>
                     </tr>
                     @endforelse
@@ -201,121 +229,79 @@
             </table>
         </div>
     </div>
+</div>
 
-    <!-- API Keys Section -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <div>
-                <h2 class="text-lg font-semibold text-gray-900">API Keys</h2>
-                <p class="text-sm text-gray-500 mt-1">Bearer tokens for authenticating API requests</p>
-            </div>
-            <button onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
-                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-                <i class="fas fa-key mr-2"></i>
-                Generate API Key
-            </button>
-        </div>
-        @if($tokens->isEmpty())
-            <div class="px-6 py-8 text-center">
-                <div class="mb-4">
-                    <i class="fas fa-key text-gray-300 text-5xl"></i>
-                </div>
-                <p class="text-gray-600 mb-4">You don't have any API keys yet.</p>
-                <p class="text-sm text-gray-500 mb-4">Create an API key to connect your business systems to Priority Bank API.</p>
-                <button onclick="document.getElementById('createTokenModal').classList.remove('hidden')" 
-                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg inline-flex items-center transition-colors">
-                    <i class="fas fa-plus mr-2"></i>
-                    Generate Your First API Key
+<!-- API Keys for Account Modal -->
+<div id="apiKeysModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900" id="apiKeysModalTitle">API keys</h3>
+                <button type="button" onclick="closeApiKeysModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-        @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name, System & Permissions</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage & Expiration</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($tokens as $token)
-                        @php
-                            // Find system linked to this token via metadata
-                            $linkedSystem = null;
-                            foreach($systems as $system) {
-                                $metadata = $system->metadata ?? [];
-                                if (isset($metadata['api_token_id']) && $metadata['api_token_id'] == $token->id) {
-                                    $linkedSystem = $system;
-                                    break;
-                                }
-                            }
-                        @endphp
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $token->name }}</div>
-                                <div class="text-xs text-gray-500">ID: #{{ $token->id }}</div>
-                                @if($linkedSystem)
-                                    <div class="text-xs text-green-600 mt-1">
-                                        System: {{ $linkedSystem->name }} ({{ $linkedSystem->system_id }})
-                                    </div>
-                                    @if($linkedSystem->callback_url)
-                                        <div class="text-xs text-gray-500 mt-1">
-                                            Callback: {{ $linkedSystem->callback_url }}
-                                        </div>
-                                    @endif
-                                @endif
-                                @if($token->abilities)
-                                    @php
-                                        $abilities = is_array($token->abilities) 
-                                            ? $token->abilities 
-                                            : (is_string($token->abilities) 
-                                                ? json_decode($token->abilities, true) ?? [] 
-                                                : []);
-                                    @endphp
-                                    @if(!empty($abilities))
-                                        <div class="text-xs text-blue-600 mt-1">Permissions: {{ implode(', ', $abilities) }}</div>
-                                    @endif
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div>{{ $token->created_at->format('M d, Y') }}</div>
-                                <div class="text-xs text-gray-400">{{ $token->created_at->format('H:i') }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div>{{ $token->last_used_at ? $token->last_used_at->format('M d, Y H:i') : 'Never' }}</div>
-                                @if($token->expires_at)
-                                    <div class="text-xs {{ $token->expires_at->isPast() ? 'text-red-600' : ($token->expires_at->isFuture() && $token->expires_at->diffInDays(now()) < 7 ? 'text-yellow-600' : 'text-gray-400') }}">
-                                        Expires: {{ $token->expires_at->format('M d, Y') }}
-                                    </div>
-                                @else
-                                    <div class="text-xs text-gray-400">No expiration</div>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <form action="{{ route('api-keys.destroy', $token->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-500 hover:text-red-700" 
-                                            onclick="return confirm('Are you sure you want to delete this API key?')">
-                                        Delete
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div id="apiKeysModalBody" class="space-y-3 max-h-96 overflow-y-auto">
+                <!-- Filled by JS -->
             </div>
-        @endif
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-xs text-gray-500">The secret key is only shown once when the key is created. You can delete and create a new key if needed.</p>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="mt-6">
-        <a href="{{ route('api-keys.documentation') }}" 
-           class="text-blue-500 hover:text-blue-700 underline">
-            View API Documentation →
-        </a>
+<!-- Link Account Modal (create new user or select existing) -->
+<div id="linkAccountModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900" id="linkAccountModalTitle">Link account</h3>
+                <button type="button" onclick="closeLinkAccountModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 mb-4">Choose how to link an account to this source:</p>
+            <div class="space-y-4">
+                <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+                    <label class="flex-1 flex items-center justify-center gap-2 py-3 px-4 cursor-pointer border-r border-gray-200 hover:bg-gray-50 link-account-choice" data-panel="create">
+                        <input type="radio" name="link_account_choice" value="create" class="link-account-radio" checked>
+                        <span class="text-sm font-medium">Create new user</span>
+                    </label>
+                    <label class="flex-1 flex items-center justify-center gap-2 py-3 px-4 cursor-pointer hover:bg-gray-50 link-account-choice" data-panel="select">
+                        <input type="radio" name="link_account_choice" value="select" class="link-account-radio">
+                        <span class="text-sm font-medium">Select existing user</span>
+                    </label>
+                </div>
+                <div id="linkAccountPanelCreate" class="link-account-panel border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <p class="text-sm text-gray-700 mb-3">A new system user account will be created and linked to this source.</p>
+                    <form id="linkAccountCreateForm" method="POST" action="">
+                        @csrf
+                        <button type="submit" class="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
+                            Create new user & link
+                        </button>
+                    </form>
+                </div>
+                <div id="linkAccountPanelSelect" class="link-account-panel hidden border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <p class="text-sm text-gray-700 mb-3">Choose an approved user to link as the account owner for this source.</p>
+                    <form id="linkAccountLinkForm" method="POST" action="">
+                        @csrf
+                        <div class="mb-3">
+                            <label for="link_account_user_id" class="block text-sm font-medium text-gray-700 mb-1">User</label>
+                            <select name="user_id" id="link_account_user_id" required class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                <option value="">Select user...</option>
+                                @foreach($users as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
+                            Link selected user
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -324,7 +310,7 @@
     <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div class="p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Create New Source Key</h3>
+                <h3 class="text-lg font-semibold text-gray-900">Create New API Key</h3>
                 <button onclick="document.getElementById('createTokenModal').classList.add('hidden')" 
                         class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
@@ -341,11 +327,11 @@
                     <p class="mt-1 text-xs text-gray-500">Give your API key a descriptive name for easy identification.</p>
                 </div>
                 <div class="mb-4">
-                    <label for="system_id" class="block text-sm font-medium text-gray-700 mb-2">Source (Optional)</label>
+                    <label for="system_id" class="block text-sm font-medium text-gray-700 mb-2">Account (Optional)</label>
                     <select name="system_id" id="system_id" 
                             class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                             onchange="toggleCallbackUrl(this.value)">
-                        <option value="">Select a source...</option>
+                        <option value="">Select an account...</option>
                         @php
                             $protectedSources = $systems->where('is_protected', true);
                             $otherSources = $systems->where('is_protected', false);
@@ -386,7 +372,7 @@
                     </button>
                     <button type="submit" 
                             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                        Create Source Key
+                        Create API Key
                     </button>
                 </div>
             </form>
@@ -500,6 +486,73 @@
 </div>
 
 <script>
+window.apiKeyDestroyUrl = "{{ url('api-keys') }}";
+window.apiKeyCsrf = "{{ csrf_token() }}";
+
+function openApiKeysModal(accountName, tokens) {
+    document.getElementById('apiKeysModalTitle').textContent = 'API keys for ' + accountName;
+    var body = document.getElementById('apiKeysModalBody');
+    if (!tokens || tokens.length === 0) {
+        body.innerHTML = '<p class="text-sm text-gray-500">No API keys linked to this account.</p>';
+    } else {
+        body.innerHTML = tokens.map(function(t) {
+            var form = '<form action="' + window.apiKeyDestroyUrl + '/' + t.id + '" method="POST" class="inline" onsubmit="return confirm(\'Are you sure you want to delete this API key?\');">' +
+                '<input type="hidden" name="_token" value="' + window.apiKeyCsrf + '">' +
+                '<input type="hidden" name="_method" value="DELETE">' +
+                '<button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>' +
+                '</form>';
+            return '<div class="p-3 bg-gray-50 rounded-lg border border-gray-200">' +
+                '<div class="font-medium text-gray-900">' + (t.name || 'Key #' + t.id) + '</div>' +
+                '<div class="text-xs text-gray-500 mt-1">Created: ' + t.created_at + '</div>' +
+                '<div class="text-xs text-gray-500">Last used: ' + t.last_used_at + '</div>' +
+                (t.expires_at ? '<div class="text-xs text-gray-500">Expires: ' + t.expires_at + '</div>' : '') +
+                '<div class="mt-2">' + form + '</div>' +
+                '</div>';
+        }).join('');
+    }
+    document.getElementById('apiKeysModal').classList.remove('hidden');
+}
+
+function closeApiKeysModal() {
+    document.getElementById('apiKeysModal').classList.add('hidden');
+}
+
+function openLinkAccountModal(button) {
+    var systemName = button.getAttribute('data-system-name') || 'this source';
+    var createUrl = button.getAttribute('data-create-url');
+    var linkUrl = button.getAttribute('data-link-url');
+    if (!createUrl || !linkUrl) return;
+    document.getElementById('linkAccountModalTitle').textContent = 'Link account to ' + systemName;
+    document.getElementById('linkAccountCreateForm').action = createUrl;
+    document.getElementById('linkAccountLinkForm').action = linkUrl;
+    document.getElementById('link_account_user_id').value = '';
+    document.querySelectorAll('.link-account-radio')[0].checked = true;
+    document.getElementById('linkAccountPanelCreate').classList.remove('hidden');
+    document.getElementById('linkAccountPanelSelect').classList.add('hidden');
+    document.getElementById('linkAccountModal').classList.remove('hidden');
+}
+
+function closeLinkAccountModal() {
+    document.getElementById('linkAccountModal').classList.add('hidden');
+}
+
+document.querySelectorAll('.link-account-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { openLinkAccountModal(this); });
+});
+document.querySelectorAll('.link-account-radio').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        var panelCreate = document.getElementById('linkAccountPanelCreate');
+        var panelSelect = document.getElementById('linkAccountPanelSelect');
+        if (this.value === 'create') {
+            panelCreate.classList.remove('hidden');
+            panelSelect.classList.add('hidden');
+        } else {
+            panelCreate.classList.add('hidden');
+            panelSelect.classList.remove('hidden');
+        }
+    });
+});
+
 function generateKeyForSource(systemId, systemName, callbackUrl) {
     // Pre-fill the modal with source information
     document.getElementById('name').value = systemName + ' API Key';

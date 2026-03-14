@@ -26,7 +26,7 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budgeted Amount</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spent</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
@@ -37,16 +37,12 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach($budgets as $budget)
                 @php
-                    $spent = \App\Models\Expense::where('user_id', auth()->id())
-                        ->where('expense_category_id', $budget->expense_category_id)
-                        ->whereYear('date', \Carbon\Carbon::parse($budget->month . '-01')->year)
-                        ->whereMonth('date', \Carbon\Carbon::parse($budget->month . '-01')->month)
-                        ->sum('amount');
-                    $remaining = $budget->amount - $spent;
-                    $percentage = $budget->amount > 0 ? min(100, round(($spent / $budget->amount) * 100)) : 0;
+                    $spent = $budget->spent;
+                    $remaining = $budget->remaining;
+                    $percentage = $budget->used_percentage;
                 @endphp
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">{{ optional($budget->category)->name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ \Carbon\Carbon::parse($budget->month . '-01')->format('F Y') }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">GHS {{ number_format($budget->amount, 2) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">GHS {{ number_format($spent, 2) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">GHS {{ number_format($remaining, 2) }}</td>

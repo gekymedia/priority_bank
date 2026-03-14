@@ -30,17 +30,17 @@
         </form>
     </div>
 
-    {{-- Totals: 3 slim cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div class="bg-white rounded-lg shadow border border-gray-100 p-3">
+    {{-- Totals: 3 cards in a row on medium+ screens --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-4">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total credits</p>
             <p class="text-lg font-semibold text-green-600 mt-0.5">GHS {{ number_format($totalCredits, 2) }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow border border-gray-100 p-3">
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-4">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total debits</p>
             <p class="text-lg font-semibold text-red-600 mt-0.5">GHS {{ number_format($totalDebits, 2) }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow border border-gray-100 p-3">
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-4">
             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Net balance</p>
             <p class="text-lg font-semibold mt-0.5 {{ $netBalance >= 0 ? 'text-gray-900' : 'text-red-600' }}">GHS {{ number_format($netBalance, 2) }}</p>
         </div>

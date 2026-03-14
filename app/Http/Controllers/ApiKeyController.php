@@ -16,8 +16,9 @@ class ApiKeyController extends Controller
     {
         $tokens = Auth::user()->tokens()->latest()->get();
         $systems = SystemRegistry::with('user')->active()->orderBy('name')->get();
+        $users = \App\Models\User::where('status', 'approved')->orderBy('name')->get(['id', 'name', 'email']);
         
-        return view('api-keys.index', compact('tokens', 'systems'));
+        return view('api-keys.index', compact('tokens', 'systems', 'users'));
     }
 
     /**

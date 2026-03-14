@@ -7,18 +7,6 @@
         <form action="{{ route('budgets.store') }}" method="POST">
             @csrf
             <div class="mb-4">
-                <label for="expense_category_id" class="block text-gray-700 font-medium mb-2">Expense Category</label>
-                <select name="expense_category_id" id="expense_category_id" class="w-full px-4 py-2 border rounded-lg @error('expense_category_id') border-red-500 @enderror" required>
-                    <option value="">Select Category</option>
-                    @foreach($categories as $id => $name)
-                        <option value="{{ $id }}" {{ old('expense_category_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
-                    @endforeach
-                </select>
-                @error('expense_category_id')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-            <div class="mb-4">
                 <label for="month" class="block text-gray-700 font-medium mb-2">Month</label>
                 <input type="month" name="month" id="month" class="w-full px-4 py-2 border rounded-lg @error('month') border-red-500 @enderror" value="{{ old('month', now()->format('Y-m')) }}" required>
                 @error('month')

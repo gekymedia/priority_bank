@@ -5,7 +5,13 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">{{ Auth::user()->isAdmin() ? 'All Transactions' : 'My Transactions' }}</h1>
+        <h1 class="text-3xl font-bold">
+            @if(Auth::user()->isAdmin() && request('user_id') == (string) auth()->id())
+                CEO Personal {{ request('type') === 'income' ? 'Income' : (request('type') === 'expense' ? 'Expenditure' : 'Transactions') }}
+            @else
+                {{ Auth::user()->isAdmin() ? 'All Transactions' : 'My Transactions' }}
+            @endif
+        </h1>
         @if(Auth::user()->isAdmin())
             <button id="newTransactionBtnFromPage" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center">
                 <i class="fas fa-plus mr-2"></i>
@@ -23,6 +29,9 @@
     <!-- Transaction Filters -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
         <form method="GET" action="{{ route('transactions.index') }}">
+            @if(request()->filled('user_id'))
+                <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+            @endif
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <!-- Type Filter -->
                 <div>
@@ -50,7 +59,7 @@
                     <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md h-10">
                         Filter
                     </button>
-                    @if(request()->has('type') || request()->has('start_date') || request()->has('end_date'))
+                    @if(request()->has('type') || request()->has('start_date') || request()->has('end_date') || request()->has('user_id'))
                         <a href="{{ route('transactions.index') }}" class="ml-2 text-gray-500 hover:text-gray-700 h-10 flex items-center">
                             Clear
                         </a>

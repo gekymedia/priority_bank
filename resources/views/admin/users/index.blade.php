@@ -64,6 +64,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Linked to</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Id</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -86,11 +87,22 @@
                                         {{ strtoupper(substr($user->name, 0, 1)) }}
                                     </div>
                                 @endif
-                                <div class="text-sm font-medium text-gray-900">{{ $user->name }}</div>
+                                <a href="{{ route('admin.users.statement', $user) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline">{{ $user->name }}</a>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $user->email }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if($user->ownedSystems->isNotEmpty())
+                                <div class="text-sm text-gray-900">
+                                    @foreach($user->ownedSystems as $sys)
+                                        <span class="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-800 mr-1 mb-1">{{ $sys->name ?? $sys->system_id }}</span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-sm text-gray-400">—</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $user->phone ?? 'N/A' }}</div>
@@ -181,7 +193,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                             No users found.
                         </td>
                     </tr>

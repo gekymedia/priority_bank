@@ -36,9 +36,7 @@
         $jsFile = $manifest['resources/js/app.js']['file'] ?? 'assets/app.js';
     @endphp
     <link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}">
-    @unless(request()->routeIs('incomes.index') || request()->routeIs('expenses.index'))
     <script src="{{ asset('build/' . $jsFile) }}" defer></script>
-    @endunless
     
     <style>
         :root {
@@ -85,6 +83,14 @@
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
+        /* Select2 user search in New Transaction modal: ensure search box is visible and focusable */
+        #transactionModal .select2-container--open .select2-dropdown { z-index: 10001 !important; }
+        #transactionModal .select2-search--dropdown .select2-search__field {
+            display: block !important;
+            width: 100% !important;
+            padding: 0.5rem 0.75rem;
+        }
 
         /* Sidebar */
         .sidebar {
@@ -227,6 +233,15 @@
         .sidebar-group-header:hover i { color: var(--primary); }
         .sidebar-group-header .sidebar-group-chevron { margin-left: auto; font-size: 12px; color: var(--gray-500); transition: transform 0.2s ease; }
         .sidebar-group.open .sidebar-group-chevron { transform: rotate(180deg); }
+        .sidebar-group-header-wrap { display: flex; align-items: center; gap: 0; padding: 0; border-radius: 12px; width: 100%; }
+        .sidebar-group-header-link { display: flex; align-items: center; gap: 15px; padding: 14px 20px; flex: 1; color: var(--gray-700); text-decoration: none; font-weight: 600; transition: var(--transition); border-radius: 12px; }
+        .sidebar-group-header-link:hover { background: rgba(79, 70, 229, 0.08); color: var(--primary); }
+        .sidebar-group-header-link i:not(.sidebar-group-chevron) { width: 24px; text-align: center; font-size: 18px; color: var(--gray-500); transition: var(--transition); }
+        .sidebar-group-header-link:hover i:not(.sidebar-group-chevron) { color: var(--primary); }
+        .sidebar-my-accounts-chevron { display: flex; align-items: center; justify-content: center; padding: 14px 12px; border: none; background: none; cursor: pointer; color: var(--gray-500); border-radius: 12px; transition: var(--transition); }
+        .sidebar-my-accounts-chevron:hover { background: rgba(79, 70, 229, 0.08); color: var(--primary); }
+        .sidebar-group-header-link.active { background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(79, 70, 229, 0.1) 100%); color: var(--primary); }
+        .sidebar-group-header-link.active i { color: var(--primary); }
         .sidebar-group-content { overflow: hidden; }
         .sidebar-group-content.collapsed { display: none; }
         .sidebar-submenu-item { margin: 0 0 0 1.5rem; }
@@ -622,18 +637,31 @@
                         <span>User Management</span>
                     </a>
                 </div>
+                @if($sidebarMainAccount ?? null)
                 @php
                     $routeUser = request()->routeIs('admin.users.show') ? request()->route('user') : null;
                     $currentUserId = $routeUser ? (is_object($routeUser) ? $routeUser->id : $routeUser) : null;
+                    $mainAccountActive = request()->routeIs('admin.users.statement') && request()->route('user') && ((is_object(request()->route('user')) ? request()->route('user')->id : request()->route('user')) == auth()->id());
                     $subaccountsActive = request()->routeIs('admin.fund-sources.*') || ($currentUserId && ($sidebarSubaccounts ?? collect())->contains('user_id', $currentUserId));
+                    $myAccountsOpen = $mainAccountActive || $subaccountsActive;
                 @endphp
-                <div class="sidebar-group {{ $subaccountsActive ? 'open' : '' }}" id="sidebarSubaccountsGroup">
-                    <button type="button" class="sidebar-group-header" aria-expanded="{{ $subaccountsActive ? 'true' : 'false' }}" aria-controls="sidebarSubaccountsContent" id="sidebarSubaccountsToggle">
-                        <i class="fas fa-coins"></i>
-                        <span>SubAccounts</span>
-                        <i class="fas fa-chevron-down sidebar-group-chevron" aria-hidden="true"></i>
-                    </button>
-                    <div class="sidebar-group-content {{ $subaccountsActive ? '' : 'collapsed' }}" id="sidebarSubaccountsContent">
+                <div class="sidebar-group {{ $myAccountsOpen ? 'open' : '' }}" id="sidebarMyAccountsGroup">
+                    <div class="sidebar-group-header-wrap">
+                        <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-group-header-link {{ request()->routeIs('admin.fund-sources.*') ? 'active' : '' }}">
+                            <i class="fas fa-wallet"></i>
+                            <span>My Accounts</span>
+                        </a>
+                        <button type="button" class="sidebar-my-accounts-chevron" aria-expanded="{{ $myAccountsOpen ? 'true' : 'false' }}" aria-controls="sidebarMyAccountsContent" id="sidebarMyAccountsToggle" aria-label="Expand or collapse My Accounts">
+                            <i class="fas fa-chevron-down sidebar-group-chevron" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar-group-content {{ $myAccountsOpen ? '' : 'collapsed' }}" id="sidebarMyAccountsContent">
+                        <div class="sidebar-submenu-item">
+                            <a href="{{ route('admin.users.statement', auth()->user()) }}" class="sidebar-link {{ $mainAccountActive ? 'active' : '' }}">
+                                <i class="fas fa-user"></i>
+                                <span>Personal (CEO)</span>
+                            </a>
+                        </div>
                         <div class="sidebar-submenu-item">
                             <a href="{{ route('admin.fund-sources.index') }}" class="sidebar-link {{ request()->routeIs('admin.fund-sources.*') ? 'active' : '' }}">
                                 <i class="fas fa-th-list"></i>
@@ -657,6 +685,7 @@
                         @endforeach
                     </div>
                 </div>
+                @endif
                 <div class="sidebar-menu-item">
                     <a href="{{ route('savings.index', ['approval' => 'pending']) }}" class="sidebar-link {{ request()->routeIs('savings.*') && request()->get('approval') === 'pending' ? 'active' : '' }}">
                         <i class="fas fa-clipboard-check"></i>
@@ -710,25 +739,13 @@
                         <span>Budgets</span>
                     </a>
                 </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('incomes.index') }}" class="sidebar-link {{ request()->routeIs('incomes.*') ? 'active' : '' }}">
-                        <i class="fas fa-arrow-down"></i>
-                        <span>Income</span>
-                    </a>
-                </div>
-                <div class="sidebar-menu-item">
-                    <a href="{{ route('expenses.index') }}" class="sidebar-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>Expenses</span>
-                    </a>
-                </div>
             @endif
             
             @if(auth()->user()->isAdmin())
                 <div class="sidebar-menu-item">
                     <a href="{{ route('api-keys.index') }}" class="sidebar-link {{ request()->routeIs('api-keys.*') ? 'active' : '' }}">
                         <i class="fas fa-key"></i>
-                        <span>Source Keys</span>
+                        <span>Accounts API keys</span>
                     </a>
                 </div>
                 <div class="sidebar-menu-item">
@@ -1055,11 +1072,11 @@
             });
         });
 
-        // SubAccounts collapsible
+        // My Accounts collapsible (Main Account + SubAccounts)
         (function() {
-            const toggle = document.getElementById('sidebarSubaccountsToggle');
-            const group = document.getElementById('sidebarSubaccountsGroup');
-            const content = document.getElementById('sidebarSubaccountsContent');
+            const toggle = document.getElementById('sidebarMyAccountsToggle');
+            const group = document.getElementById('sidebarMyAccountsGroup');
+            const content = document.getElementById('sidebarMyAccountsContent');
             if (toggle && group && content) {
                 toggle.addEventListener('click', function() {
                     group.classList.toggle('open');
@@ -1255,10 +1272,16 @@
                             if (typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function' && !hasSelect2) {
                                 $(userSelect).select2({
                                     theme: 'bootstrap-5',
-                                    placeholder: 'Select User',
+                                    placeholder: 'Search or select user...',
                                     allowClear: true,
                                     width: '100%',
-                                    dropdownParent: modal
+                                    dropdownParent: $(modal),
+                                    minimumResultsForSearch: 0,
+                                    language: {
+                                        noResults: function() { return 'No matching users'; },
+                                        searching: function() { return ''; },
+                                        inputTooShort: function() { return 'Type to search users'; }
+                                    }
                                 });
                             }
                         }
@@ -1352,14 +1375,20 @@
                 });
                 setTimeout(function() {
                     toggleUserField();
-                    if (getSourceSystemId() === 'priority_bank' && userSelect && typeof $ !== 'undefined' && $.fn.select2) {
+                    if (getSourceSystemId() === 'priority_bank' && userSelect && typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function') {
                         if (!userSelect.classList.contains('select2-hidden-accessible')) {
                             $(userSelect).select2({
                                 theme: 'bootstrap-5',
                                 placeholder: 'Search or select user...',
                                 allowClear: true,
                                 width: '100%',
-                                dropdownParent: modal
+                                dropdownParent: $(modal),
+                                minimumResultsForSearch: 0,
+                                language: {
+                                    noResults: function() { return 'No matching users'; },
+                                    searching: function() { return ''; },
+                                    inputTooShort: function() { return 'Type to search users'; }
+                                }
                             });
                         }
                     }

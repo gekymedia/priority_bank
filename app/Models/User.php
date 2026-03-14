@@ -7,17 +7,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\Income;
-use App\Models\Expense;
 use App\Models\Loan;
 use App\Models\Account;
 use App\Models\Budget;
-use App\Models\IncomeCategory;
-use App\Models\ExpenseCategory;
 use App\Models\Saving;
 use App\Models\LoanRequest;
 use App\Models\Payment;
 use App\Models\Transaction;
+use App\Models\SystemRegistry;
 
 class User extends Authenticatable
 {
@@ -77,22 +74,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get all incomes for the user.
-     */
-    public function incomes()
-    {
-        return $this->hasMany(Income::class);
-    }
-
-    /**
-     * Get all expenses for the user.
-     */
-    public function expenses()
-    {
-        return $this->hasMany(Expense::class);
-    }
-
-    /**
      * Get all loans for the user.
      */
     public function loans()
@@ -114,22 +95,6 @@ class User extends Authenticatable
     public function budgets()
     {
         return $this->hasMany(Budget::class);
-    }
-
-    /**
-     * Get income categories defined by user.
-     */
-    public function incomeCategories()
-    {
-        return $this->hasMany(IncomeCategory::class);
-    }
-
-    /**
-     * Get expense categories defined by user.
-     */
-    public function expenseCategories()
-    {
-        return $this->hasMany(ExpenseCategory::class);
     }
 
     /**
@@ -162,6 +127,15 @@ class User extends Authenticatable
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Systems/accounts (main or subaccounts) owned by this user.
+     * systems_registry.user_id = owner; used for "Linked to" on User Management.
+     */
+    public function ownedSystems()
+    {
+        return $this->hasMany(SystemRegistry::class, 'user_id');
     }
 
     /**
@@ -308,19 +282,19 @@ class User extends Authenticatable
     }
 
     /**
-     * Total income records count (Income model + income Transactions e.g. admin-tagged bank).
+     * Total income records count (from transactions ledger).
      */
     public function getTotalIncomesCountAttribute(): int
     {
-        return $this->incomes()->count() + $this->transactions()->where('type', 'income')->count();
+        return $this->transactions()->where('type', 'income')->count();
     }
 
     /**
-     * Total expense records count (Expense model + expense Transactions e.g. admin-tagged bank).
+     * Total expense records count (from transactions ledger).
      */
     public function getTotalExpensesCountAttribute(): int
     {
-        return $this->expenses()->count() + $this->transactions()->where('type', 'expense')->count();
+        return $this->transactions()->where('type', 'expense')->count();
     }
 
     /**

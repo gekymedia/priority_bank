@@ -17,9 +17,12 @@ class TransactionController extends Controller
     {
         $query = Transaction::query();
         
-        // Admins see all transactions, regular users see only their own
+        // Admins see all transactions (or filter by user_id for CEO personal view); regular users see only their own
         if (!auth()->user()->isAdmin()) {
             $query->where('user_id', auth()->id());
+        } elseif (request()->filled('user_id')) {
+            // Admin filtering to a specific user (e.g. CEO's own transactions)
+            $query->where('user_id', request('user_id'));
         }
         
         $transactions = $query

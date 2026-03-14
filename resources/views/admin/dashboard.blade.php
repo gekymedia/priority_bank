@@ -86,7 +86,7 @@
 
     <!-- Row 2: CEO Personal (Total Incomes, Total Expenses, Net Balance, Money in Coffers) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <a href="{{ route('incomes.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+        <a href="{{ route('transactions.index', ['user_id' => auth()->id(), 'type' => 'income']) }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-gray-500 font-medium">CEO Total Incomes</p>
@@ -98,9 +98,9 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">From Income ledger</p>
+            <p class="text-sm text-gray-500 mt-2">CEO personal income (click to view)</p>
         </a>
-        <a href="{{ route('expenses.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-rose-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
+        <a href="{{ route('transactions.index', ['user_id' => auth()->id(), 'type' => 'expense']) }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-rose-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-gray-500 font-medium">CEO Total Expenses</p>
@@ -112,9 +112,9 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">From Expense ledger</p>
+            <p class="text-sm text-gray-500 mt-2">CEO personal expenditure (click to view)</p>
         </a>
-        <a href="{{ route('transactions.index') }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-amber-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+        <a href="{{ route('transactions.index', ['user_id' => auth()->id()]) }}" class="block bg-white rounded-lg shadow-md p-6 border-l-4 border-amber-500 hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-gray-500 font-medium">CEO Net Balance</p>
@@ -431,16 +431,16 @@
         </div>
         <div class="divide-y divide-gray-200">
             @foreach($recentTransactions as $transaction)
-            <div class="p-4 hover:bg-gray-50">
+            <a href="{{ route('transactions.show', $transaction) }}" class="block p-4 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center">
-                        @if($transaction['type'] === 'income')
+                        @if($transaction->type === 'income')
                         <div class="bg-blue-100 p-3 rounded-full mr-4">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                             </svg>
                         </div>
-                        @elseif($transaction['type'] === 'expense')
+                        @elseif($transaction->type === 'expense')
                         <div class="bg-red-100 p-3 rounded-full mr-4">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
@@ -448,18 +448,21 @@
                         </div>
                         @endif
                         <div>
-                            <p class="font-medium">{{ $transaction['description'] }}</p>
-                            <p class="text-sm text-gray-500">{{ $transaction['date']->format('M d, Y h:i A') }}</p>
+                            <p class="font-medium">{{ $transaction->description ?? $transaction->category ?? ucfirst($transaction->type) }}</p>
+                            <p class="text-sm text-gray-500">{{ $transaction->date->format('M d, Y h:i A') }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                Account: {{ $transaction->user?->name ?? 'N/A' }}{{ $transaction->externalSystem ? ' · ' . $transaction->externalSystem->name : '' }}
+                            </p>
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-medium {{ $transaction['type'] === 'income' ? 'text-green-500' : 'text-red-500' }}">
-                            {{ $transaction['type'] === 'income' ? '+' : '-' }}GHS {{ number_format($transaction['amount'], 2) }}
+                        <p class="font-medium {{ $transaction->type === 'income' ? 'text-green-500' : 'text-red-500' }}">
+                            {{ $transaction->type === 'income' ? '+' : '-' }}GHS {{ number_format($transaction->amount, 2) }}
                         </p>
-                        <p class="text-sm text-gray-500">{{ ucfirst($transaction['category']) }}</p>
+                        <p class="text-sm text-gray-500">{{ ucfirst($transaction->category ?? $transaction->type) }}</p>
                     </div>
                 </div>
-            </div>
+            </a>
             @endforeach
         </div>
         <div class="p-4 bg-gray-50 text-center">

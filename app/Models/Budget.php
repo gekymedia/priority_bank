@@ -18,18 +18,9 @@ class Budget extends Model
 
     protected $fillable = [
         'user_id',
-        'expense_category_id',
         'month',
         'amount',
     ];
-
-    /**
-     * Category this budget applies to.
-     */
-    public function category()
-    {
-        return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
-    }
 
     /**
      * User owning this budget.
@@ -40,14 +31,16 @@ class Budget extends Model
     }
 
     /**
-     * Calculate actual spent amount for this budget and month.
+     * Calculate actual spent amount for this budget and month (from transactions ledger).
      */
     public function getSpentAttribute(): float
     {
-        return (float) $this->user->expenses()
-            ->where('expense_category_id', $this->expense_category_id)
-            ->whereMonth('date', substr($this->month, 5, 2))
-            ->whereYear('date', substr($this->month, 0, 4))
+        $year = substr($this->month, 0, 4);
+        $month = substr($this->month, 5, 2);
+        return (float) \App\Models\Transaction::where('user_id', $this->user_id)
+            ->where('type', 'expense')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
             ->sum('amount');
     }
 

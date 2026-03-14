@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Loan;
-use App\Models\Income;
-use App\Models\Expense;
+use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\User;
 use App\Models\InterestRate;
@@ -212,15 +211,15 @@ class LoanController extends Controller
         $loan->notes = $loan->notes . ' | Returned: ' . $request->returned_amount;
         $loan->save();
 
-        // Create corresponding income
-        Income::create([
+        // Record loan return as income in transactions ledger
+        Transaction::create([
             'user_id' => $loan->user_id,
-            'income_category_id' => null, // loan returns are a special category
-            'account_id' => $request->account_id,
+            'type' => 'income',
+            'category' => 'Loan return',
             'amount' => $request->returned_amount,
             'date' => $request->date,
-            'channel' => $request->channel,
-            'notes' => $request->notes ?? 'Loan return from ' . $loan->borrower_name,
+            'description' => $request->notes ?? 'Loan return from ' . $loan->borrower_name,
+            'notes' => null,
         ]);
 
         return redirect()->route('loans.index')->with('success', 'Loan marked as returned.');
@@ -244,16 +243,16 @@ class LoanController extends Controller
         $loan->notes = $loan->notes . ' | Lost';
         $loan->save();
 
-        // Create expense for bad debt if remaining > 0
+        // Record loan loss as expense in transactions ledger
         if ($remaining > 0) {
-            Expense::create([
+            Transaction::create([
                 'user_id' => $loan->user_id,
-                'expense_category_id' => null, // Loan loss special category
-                'account_id' => $request->account_id,
+                'type' => 'expense',
+                'category' => 'Loan loss',
                 'amount' => $remaining,
                 'date' => $request->date,
-                'channel' => $request->channel,
-                'notes' => $request->notes ?? 'Loan loss for ' . $loan->borrower_name,
+                'description' => $request->notes ?? 'Loan loss for ' . $loan->borrower_name,
+                'notes' => null,
             ]);
         }
 

@@ -3,12 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Income;
-use App\Models\Expense;
 use App\Models\Transaction;
 use App\Models\SystemRegistry;
-use App\Models\IncomeCategory;
-use App\Models\ExpenseCategory;
 use App\Models\Account;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -59,28 +55,11 @@ class CentralFinanceApiController extends Controller
             'date' => 'required|date',
             'channel' => 'required|in:bank,momo,cash,other',
             'notes' => 'nullable|string',
-            'income_category_id' => 'nullable|exists:income_categories,id',
-            'income_category_name' => 'nullable|string|max:255', // Alternative: create category by name
+            'income_category_name' => 'nullable|string|max:255',
             'account_id' => 'nullable|exists:accounts,id',
             'metadata' => 'nullable|array',
         ]);
 
-        // Get or generate idempotency key
-        $idempotencyKey = $request->header('X-Idempotency-Key') 
-            ?? $validated['idempotency_key'] 
-            ?? $this->generateIdempotencyKey($validated['system_id'], $validated['external_transaction_id']);
-
-        // Check for duplicate using idempotency key
-        $existing = Income::where('idempotency_key', $idempotencyKey)->first();
-        if ($existing) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Income already recorded (idempotent)',
-                'data' => $existing,
-            ], 200);
-        }
-
-        // Get system registry
         $system = SystemRegistry::where('system_id', $validated['system_id'])->first();
         if (!$system || !$system->active_status) {
             return response()->json([
@@ -89,17 +68,18 @@ class CentralFinanceApiController extends Controller
             ], 404);
         }
 
-        // Get or create income category
-        $incomeCategoryId = $validated['income_category_id'] ?? null;
-        if (!$incomeCategoryId && isset($validated['income_category_name'])) {
-            $incomeCategory = IncomeCategory::firstOrCreate(
-                ['name' => $validated['income_category_name'], 'user_id' => null],
-                ['name' => $validated['income_category_name'], 'user_id' => null]
-            );
-            $incomeCategoryId = $incomeCategory->id;
+        $existing = Transaction::where('external_system_id', $system->id)
+            ->where('external_transaction_id', $validated['external_transaction_id'])
+            ->where('type', 'income')
+            ->first();
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Income already recorded (idempotent)',
+                'data' => $existing->load(['user', 'externalSystem']),
+            ], 200);
         }
 
-        // Attribute to the system's user account (each source has its own user in the bank)
         $userId = $system->user_id;
         if (!$userId) {
             return response()->json([
@@ -108,51 +88,23 @@ class CentralFinanceApiController extends Controller
             ], 400);
         }
 
-        // Use system's account, or first account for that user, or create a default one
         $accountId = $validated['account_id'] ?? null;
         if (!$accountId) {
             $account = Account::where('user_id', $userId)->first();
             if (!$account) {
-                $account = Account::create([
+                Account::create([
                     'user_id' => $userId,
                     'name' => 'Default',
                     'type' => 'bank',
                     'opening_balance' => 0,
                 ]);
             }
-            $accountId = $account->id;
-        } else {
-            $account = Account::where('id', $accountId)->where('user_id', $userId)->first();
-            if (!$account) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Account does not belong to this system.',
-                ], 400);
-            }
         }
 
+        $categoryName = $validated['income_category_name'] ?? 'Income';
+
         try {
-            DB::beginTransaction();
-
-            $income = Income::create([
-                'user_id' => $userId,
-                'external_system_id' => $system->id,
-                'external_transaction_id' => $validated['external_transaction_id'],
-                'idempotency_key' => $idempotencyKey,
-                'income_category_id' => $incomeCategoryId,
-                'account_id' => $accountId,
-                'amount' => $validated['amount'],
-                'date' => $validated['date'],
-                'channel' => $validated['channel'],
-                'notes' => $validated['notes'] ?? null,
-                'sync_status' => 'synced',
-                'synced_at' => now(),
-            ]);
-
-            // Also create a Transaction so it appears in the bank's Transactions list
-            $categoryName = $incomeCategoryId ? (IncomeCategory::find($incomeCategoryId)?->name) : null;
-            $categoryName = $categoryName ?? ($validated['income_category_name'] ?? 'Income');
-            Transaction::create([
+            $transaction = Transaction::create([
                 'user_id' => $userId,
                 'type' => 'income',
                 'category' => $categoryName,
@@ -164,22 +116,19 @@ class CentralFinanceApiController extends Controller
                 'external_transaction_id' => $validated['external_transaction_id'],
             ]);
 
-            DB::commit();
-
             Log::info('Income recorded from external system', [
                 'system_id' => $validated['system_id'],
-                'income_id' => $income->id,
+                'transaction_id' => $transaction->id,
                 'external_transaction_id' => $validated['external_transaction_id'],
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Income recorded successfully',
-                'data' => $income->load(['category', 'account', 'externalSystem']),
+                'data' => $transaction->load(['user', 'externalSystem']),
             ], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Failed to record income from external system', [
                 'system_id' => $validated['system_id'],
                 'error' => $e->getMessage(),
@@ -208,28 +157,11 @@ class CentralFinanceApiController extends Controller
             'date' => 'required|date',
             'channel' => 'required|in:bank,momo,cash,other',
             'notes' => 'nullable|string',
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
             'expense_category_name' => 'nullable|string|max:255',
             'account_id' => 'nullable|exists:accounts,id',
             'metadata' => 'nullable|array',
         ]);
 
-        // Get or generate idempotency key
-        $idempotencyKey = $request->header('X-Idempotency-Key') 
-            ?? $validated['idempotency_key'] 
-            ?? $this->generateIdempotencyKey($validated['system_id'], $validated['external_transaction_id']);
-
-        // Check for duplicate
-        $existing = Expense::where('idempotency_key', $idempotencyKey)->first();
-        if ($existing) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Expense already recorded (idempotent)',
-                'data' => $existing,
-            ], 200);
-        }
-
-        // Get system registry
         $system = SystemRegistry::where('system_id', $validated['system_id'])->first();
         if (!$system || !$system->active_status) {
             return response()->json([
@@ -238,17 +170,18 @@ class CentralFinanceApiController extends Controller
             ], 404);
         }
 
-        // Get or create expense category
-        $expenseCategoryId = $validated['expense_category_id'] ?? null;
-        if (!$expenseCategoryId && isset($validated['expense_category_name'])) {
-            $expenseCategory = ExpenseCategory::firstOrCreate(
-                ['name' => $validated['expense_category_name'], 'user_id' => null],
-                ['name' => $validated['expense_category_name'], 'user_id' => null]
-            );
-            $expenseCategoryId = $expenseCategory->id;
+        $existing = Transaction::where('external_system_id', $system->id)
+            ->where('external_transaction_id', $validated['external_transaction_id'])
+            ->where('type', 'expense')
+            ->first();
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense already recorded (idempotent)',
+                'data' => $existing->load(['user', 'externalSystem']),
+            ], 200);
         }
 
-        // Attribute to the system's user account (each source has its own user in the bank)
         $userId = $system->user_id;
         if (!$userId) {
             return response()->json([
@@ -257,7 +190,6 @@ class CentralFinanceApiController extends Controller
             ], 400);
         }
 
-        // Use system's account, or first account for that user, or create a default one
         $accountId = $validated['account_id'] ?? null;
         if (!$accountId) {
             $account = Account::where('user_id', $userId)->first();
@@ -269,66 +201,36 @@ class CentralFinanceApiController extends Controller
                     'opening_balance' => 0,
                 ]);
             }
-            $accountId = $account->id;
-        } else {
-            $account = Account::where('id', $accountId)->where('user_id', $userId)->first();
-            if (!$account) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Account does not belong to this system.',
-                ], 400);
-            }
         }
 
+        $categoryName = $validated['expense_category_name'] ?? 'Expense';
+
         try {
-            DB::beginTransaction();
-
-            $expense = Expense::create([
-                'user_id' => $userId,
-                'external_system_id' => $system->id,
-                'external_transaction_id' => $validated['external_transaction_id'],
-                'idempotency_key' => $idempotencyKey,
-                'expense_category_id' => $expenseCategoryId,
-                'account_id' => $accountId,
-                'amount' => $validated['amount'],
-                'date' => $validated['date'],
-                'channel' => $validated['channel'],
-                'notes' => $validated['notes'] ?? null,
-                'sync_status' => 'synced',
-                'synced_at' => now(),
-            ]);
-
-            // Also create a Transaction so it appears in the bank's Transactions list
-            $expCategoryName = $expenseCategoryId ? (ExpenseCategory::find($expenseCategoryId)?->name) : null;
-            $expCategoryName = $expCategoryName ?? ($validated['expense_category_name'] ?? 'Expense');
-            Transaction::create([
+            $transaction = Transaction::create([
                 'user_id' => $userId,
                 'type' => 'expense',
-                'category' => $expCategoryName,
+                'category' => $categoryName,
                 'amount' => $validated['amount'],
                 'date' => $validated['date'],
-                'description' => $validated['notes'] ?? $expCategoryName,
+                'description' => $validated['notes'] ?? $categoryName,
                 'notes' => null,
                 'external_system_id' => $system->id,
                 'external_transaction_id' => $validated['external_transaction_id'],
             ]);
 
-            DB::commit();
-
             Log::info('Expense recorded from external system', [
                 'system_id' => $validated['system_id'],
-                'expense_id' => $expense->id,
+                'transaction_id' => $transaction->id,
                 'external_transaction_id' => $validated['external_transaction_id'],
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Expense recorded successfully',
-                'data' => $expense->load(['category', 'account', 'externalSystem']),
+                'data' => $transaction->load(['user', 'externalSystem']),
             ], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Failed to record expense from external system', [
                 'system_id' => $validated['system_id'],
                 'error' => $e->getMessage(),

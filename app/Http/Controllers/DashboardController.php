@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
-use App\Models\Income;
-use App\Models\Expense;
 use App\Models\Loan;
 use App\Models\Payout;
 use App\Models\Saving;
@@ -83,15 +81,14 @@ class DashboardController extends Controller
         $pendingSavingsList = Saving::pendingApproval()->with('user')->latest()->take(5)->get();
         $pendingSavingsCount = Saving::pendingApproval()->count();
 
-        // Charts & Recent - Admin sees all transactions
+        // Charts & Recent - Admin sees all transactions (full models for clickable rows + account)
         $incomeExpenseChart = $this->generateIncomeExpenseChart(null, $thirtyDaysAgo);
         $expenseCategoryChart = $this->generateExpenseCategoryChart(null, $thirtyDaysAgo);
-        $recentTransactions = $this->getRecentTransactions(null);
+        $recentTransactions = Transaction::with(['user', 'externalSystem'])->latest()->take(10)->get();
 
-        // Your (admin/CEO) balances: Transaction list vs Income/Expense ledger
-        // CEO Total Incomes/Expenses = from Income & Expense ledgers (/incomes, /expenses)
-        $ceoTotalIncome = (float) Income::where('user_id', $user->id)->sum('amount');
-        $ceoTotalExpenses = (float) Expense::where('user_id', $user->id)->sum('amount');
+        // Your (admin/CEO) balances: all from transactions ledger (CEO account)
+        $ceoTotalIncome = (float) Transaction::where('user_id', $user->id)->where('type', 'income')->sum('amount');
+        $ceoTotalExpenses = (float) Transaction::where('user_id', $user->id)->where('type', 'expense')->sum('amount');
         $yourBankTransactionBalance = (float) (
             Transaction::where('user_id', $user->id)->where('type', 'income')->sum('amount') -
             Transaction::where('user_id', $user->id)->where('type', 'expense')->sum('amount')
@@ -99,10 +96,8 @@ class DashboardController extends Controller
         $yourIncomeExpenseBalance = (float) Account::where('user_id', $user->id)->get()->sum(fn ($a) => $a->balance);
         $yourOverallBalance = $yourBankTransactionBalance + $yourIncomeExpenseBalance;
 
-        // CEO Net Balance = Income & Expenditure ledgers summation (from /incomes and /expenses)
-        $ceoLedgerIncome = (float) Income::where('user_id', $user->id)->sum('amount');
-        $ceoLedgerExpense = (float) Expense::where('user_id', $user->id)->sum('amount');
-        $ceoNetBalance = $ceoLedgerIncome - $ceoLedgerExpense;
+        // CEO Net Balance = from transactions ledger
+        $ceoNetBalance = $ceoTotalIncome - $ceoTotalExpenses;
 
         // Row 1: Bank totals from all transactions (deposits/savings vs loans/withdrawals)
         $totalBankDeposits = (float) Transaction::where('type', 'income')->sum('amount');

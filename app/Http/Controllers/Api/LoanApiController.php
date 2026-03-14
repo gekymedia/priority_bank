@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
-use App\Models\Income;
-use App\Models\Expense;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -99,14 +98,14 @@ class LoanApiController extends Controller
         $loan->notes = $loan->notes . ' | Lost';
         $loan->save();
         if ($remaining > 0) {
-            Expense::create([
+            Transaction::create([
                 'user_id' => $loan->user_id,
-                'expense_category_id' => null,
-                'account_id' => $data['account_id'],
+                'type' => 'expense',
+                'category' => 'Loan loss',
                 'amount' => $remaining,
                 'date' => $data['date'],
-                'channel' => $data['channel'],
-                'notes' => $data['notes'] ?? 'Loan loss for ' . $loan->borrower_name,
+                'description' => $data['notes'] ?? 'Loan loss for ' . $loan->borrower_name,
+                'notes' => null,
             ]);
         }
         return response()->json($loan);

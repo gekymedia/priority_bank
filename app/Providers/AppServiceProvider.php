@@ -64,12 +64,19 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if (auth()->check() && auth()->user()->isAdmin()) {
+                $sidebarMainAccount = \App\Models\SystemRegistry::active()
+                    ->with('user')
+                    ->where('system_id', 'personal_ceo')
+                    ->first();
                 $sidebarSubaccounts = \App\Models\SystemRegistry::active()
                     ->with('user')
+                    ->where('system_id', '!=', 'personal_ceo')
                     ->orderBy('name')
                     ->get();
+                $view->with('sidebarMainAccount', $sidebarMainAccount);
                 $view->with('sidebarSubaccounts', $sidebarSubaccounts);
             } else {
+                $view->with('sidebarMainAccount', null);
                 $view->with('sidebarSubaccounts', collect());
             }
         });

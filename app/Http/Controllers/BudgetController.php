@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Budget;
-use App\Models\ExpenseCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -15,13 +14,13 @@ class BudgetController extends Controller
 {
     /**
      * Display a listing of budgets for the authenticated user. By default show current month.
+     * Budget is now monthly total (spent from transactions ledger).
      */
     public function index(Request $request)
     {
         $month = $request->input('month', Carbon::now()->format('Y-m'));
         $budgets = Budget::where('user_id', Auth::id())
             ->where('month', $month)
-            ->with('category')
             ->get();
         return view('budgets.index', compact('budgets', 'month'));
     }
@@ -31,11 +30,7 @@ class BudgetController extends Controller
      */
     public function create()
     {
-        $categories = ExpenseCategory::whereNull('user_id')
-            ->orWhere('user_id', Auth::id())
-            ->orderBy('name')
-            ->pluck('name', 'id');
-        return view('budgets.create', compact('categories'));
+        return view('budgets.create');
     }
 
     /**
@@ -44,14 +39,12 @@ class BudgetController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'expense_category_id' => 'required|exists:expense_categories,id',
             'month' => 'required|date_format:Y-m',
             'amount' => 'required|numeric|min:0',
         ]);
 
         Budget::updateOrCreate([
             'user_id' => Auth::id(),
-            'expense_category_id' => $request->expense_category_id,
             'month' => $request->month,
         ], [
             'amount' => $request->amount,
@@ -67,11 +60,7 @@ class BudgetController extends Controller
     public function edit(Budget $budget)
     {
         $this->authorize('update', $budget);
-        $categories = ExpenseCategory::whereNull('user_id')
-            ->orWhere('user_id', Auth::id())
-            ->orderBy('name')
-            ->pluck('name', 'id');
-        return view('budgets.edit', compact('budget', 'categories'));
+        return view('budgets.edit', compact('budget'));
     }
 
     /**
@@ -81,12 +70,10 @@ class BudgetController extends Controller
     {
         $this->authorize('update', $budget);
         $request->validate([
-            'expense_category_id' => 'required|exists:expense_categories,id',
             'month' => 'required|date_format:Y-m',
             'amount' => 'required|numeric|min:0',
         ]);
         $budget->update([
-            'expense_category_id' => $request->expense_category_id,
             'month' => $request->month,
             'amount' => $request->amount,
         ]);

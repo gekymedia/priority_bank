@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\IncomeApiController;
-use App\Http\Controllers\Api\ExpenseApiController;
 use App\Http\Controllers\Api\LoanApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\CentralFinanceApiController;
@@ -46,14 +44,6 @@ Route::prefix('central-finance')->middleware('auth:sanctum')->group(function () 
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    // Income endpoints
-    Route::post('/income', [IncomeApiController::class, 'store']);
-    Route::get('/income', [IncomeApiController::class, 'index']);
-
-    // Expense endpoints
-    Route::post('/expenses', [ExpenseApiController::class, 'store']);
-    Route::get('/expenses', [ExpenseApiController::class, 'index']);
-
     // Loan endpoints
     Route::post('/loans', [LoanApiController::class, 'store']);
     Route::get('/loans', [LoanApiController::class, 'index']);

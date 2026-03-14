@@ -187,4 +187,24 @@ class SystemRegistryController extends Controller
         return redirect()->route('api-keys.index')
             ->with('success', 'User account created and linked to "' . $systemRegistry->name . '".');
     }
+
+    /**
+     * Link an existing user account to a source (system account).
+     */
+    public function linkUser(Request $request, SystemRegistry $systemRegistry)
+    {
+        if ($systemRegistry->user_id) {
+            return redirect()->route('api-keys.index')
+                ->with('info', 'This source already has a linked user account.');
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $systemRegistry->update(['user_id' => $validated['user_id']]);
+
+        return redirect()->route('api-keys.index')
+            ->with('success', 'User account linked to "' . $systemRegistry->name . '".');
+    }
 }
