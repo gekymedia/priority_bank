@@ -49,8 +49,9 @@ class FundSourceController extends Controller
             'color' => 'blue'
         ];
 
-        // 2. Get ALL source keys from systems_registry
+        // 2. Get ALL source keys from systems_registry (with linked user for balance)
         $allSources = SystemRegistry::active()
+            ->with('user')
             ->orderBy('name')
             ->get();
 
@@ -59,16 +60,23 @@ class FundSourceController extends Controller
         $colorIndex = 0;
 
         foreach ($allSources as $system) {
-            // Calculate balance: Total Income - Total Expenses for this system using Transaction model
-            $totalIncome = Transaction::where('external_system_id', $system->id)
-                ->where('type', 'income')
-                ->sum('amount');
-            
-            $totalExpenses = Transaction::where('external_system_id', $system->id)
-                ->where('type', 'expense')
-                ->sum('amount');
-            
-            $balance = $totalIncome - $totalExpenses;
+            $hasLinkedUser = (bool) $system->user_id;
+            $balance = null;
+            $savings_balance = null;
+            $loan_balance = null;
+            $net_balance = null;
+            $linked_user_name = null;
+            $linked_user_id = null;
+
+            if ($hasLinkedUser && $system->user) {
+                $user = $system->user;
+                $linked_user_name = $user->name;
+                $linked_user_id = $user->id;
+                $savings_balance = (float) $user->savings_balance;
+                $loan_balance = (float) $user->loan_balance;
+                $net_balance = (float) $user->net_balance;
+                $balance = $net_balance;
+            }
 
             $fundSources[] = [
                 'name' => $system->name,
@@ -76,13 +84,17 @@ class FundSourceController extends Controller
                 'balance' => $balance,
                 'system_id' => $system->id,
                 'system_name' => $system->name,
-                'total_income' => $totalIncome,
-                'total_expenses' => $totalExpenses,
                 'description' => $system->description ?? 'Fund managed via API: ' . $system->name,
                 'icon' => 'wallet',
-                'color' => $colors[$colorIndex % count($colors)]
+                'color' => $colors[$colorIndex % count($colors)],
+                'has_linked_user' => $hasLinkedUser,
+                'linked_user_name' => $linked_user_name,
+                'linked_user_id' => $linked_user_id,
+                'savings_balance' => $savings_balance,
+                'loan_balance' => $loan_balance,
+                'net_balance' => $net_balance,
             ];
-            
+
             $colorIndex++;
         }
 

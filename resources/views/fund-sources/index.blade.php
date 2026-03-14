@@ -48,34 +48,50 @@
                     </div>
                 </div>
                 
+                @if($fund['type'] === 'api' && empty($fund['has_linked_user']))
+                <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p class="text-amber-800 text-sm font-medium">
+                        <i class="fas fa-exclamation-circle mr-1"></i> This source does not have an account linked yet.
+                    </p>
+                    <p class="text-amber-700 text-xs mt-1">Link a user account in API Keys / Source Keys so balances and transactions apply to this source.</p>
+                </div>
+                @else
                 <div class="mt-4">
                     <div class="text-3xl font-bold 
                         @if($fund['balance'] >= 0) text-green-600 @else text-red-600 @endif">
-                        GHS {{ number_format($fund['balance'], 2) }}
+                        @if($fund['type'] === 'api' && $fund['balance'] === null)
+                            —
+                        @else
+                            GHS {{ number_format($fund['balance'], 2) }}
+                        @endif
                     </div>
                     <p class="text-sm text-gray-500 mt-1">Current Balance</p>
                 </div>
 
-                @if($fund['type'] === 'api' && isset($fund['total_income']))
+                @if($fund['type'] === 'api' && !empty($fund['has_linked_user']))
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Total Income:</span>
-                        <span class="font-semibold text-green-600">GHS {{ number_format($fund['total_income'], 2) }}</span>
+                        <span class="text-gray-600">Savings:</span>
+                        <span class="font-semibold text-green-600">GHS {{ number_format($fund['savings_balance'], 2) }}</span>
                     </div>
                     <div class="flex justify-between text-sm mt-2">
-                        <span class="text-gray-600">Total Expenses:</span>
-                        <span class="font-semibold text-red-600">GHS {{ number_format($fund['total_expenses'], 2) }}</span>
+                        <span class="text-gray-600">Loans:</span>
+                        <span class="font-semibold text-red-600">GHS {{ number_format($fund['loan_balance'], 2) }}</span>
                     </div>
-                    @if($fund['system_id'])
+                    <div class="flex justify-between text-sm mt-2">
+                        <span class="text-gray-600">Net:</span>
+                        <span class="font-semibold {{ ($fund['net_balance'] ?? 0) >= 0 ? 'text-gray-900' : 'text-red-600' }}">GHS {{ number_format($fund['net_balance'], 2) }}</span>
+                    </div>
+                    @if(!empty($fund['linked_user_name']))
                     <div class="mt-2 text-xs text-gray-500">
-                        <i class="fas fa-link mr-1"></i> Connected: {{ $fund['system_name'] }}
-                    </div>
-                    @else
-                    <div class="mt-2 text-xs text-yellow-600">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> Not Connected
+                        <i class="fas fa-user mr-1"></i> Account: {{ $fund['linked_user_name'] }}
+                        @if(!empty($fund['linked_user_id']))
+                            <a href="{{ route('admin.users.show', $fund['linked_user_id']) }}" class="text-indigo-600 hover:underline ml-1">View</a>
+                        @endif
                     </div>
                     @endif
                 </div>
+                @endif
                 @endif
 
                 @if($fund['type'] === 'savings')
@@ -114,14 +130,24 @@
                             {{ $fund['description'] }}
                         @endif
                     </p>
-                    @if($fund['type'] === 'api' && isset($fund['total_income']))
+                    @if($fund['type'] === 'api' && !empty($fund['has_linked_user']))
                     <div class="mt-2 flex gap-4 text-xs">
-                        <span class="text-gray-500">Income: <span class="font-semibold text-green-600">GHS {{ number_format($fund['total_income'], 2) }}</span></span>
-                        <span class="text-gray-500">Expenses: <span class="font-semibold text-red-600">GHS {{ number_format($fund['total_expenses'], 2) }}</span></span>
+                        <span class="text-gray-500">Savings: <span class="font-semibold text-green-600">GHS {{ number_format($fund['savings_balance'], 2) }}</span></span>
+                        <span class="text-gray-500">Loans: <span class="font-semibold text-red-600">GHS {{ number_format($fund['loan_balance'], 2) }}</span></span>
+                        <span class="text-gray-500">Net: <span class="font-semibold">GHS {{ number_format($fund['net_balance'], 2) }}</span></span>
+                    </div>
+                    @elseif($fund['type'] === 'api' && empty($fund['has_linked_user']))
+                    <div class="mt-2 text-xs text-amber-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i> This source does not have an account linked yet.
                     </div>
                     @endif
                 </div>
                 <div class="text-right">
+                    @if($fund['type'] === 'api' && empty($fund['has_linked_user']))
+                    <div class="text-sm font-medium text-amber-600">
+                        No account linked
+                    </div>
+                    @else
                     <div class="text-2xl font-bold 
                         @if($fund['balance'] >= 0) 
                             @if($fund['type'] === 'savings') text-blue-600
@@ -130,8 +156,13 @@
                             @else text-gray-600
                             @endif
                         @else text-red-600 @endif">
-                        GHS {{ number_format($fund['balance'], 2) }}
+                        @if($fund['type'] === 'api' && $fund['balance'] === null)
+                            —
+                        @else
+                            GHS {{ number_format($fund['balance'], 2) }}
+                        @endif
                     </div>
+                    @endif
                 </div>
             </div>
             @endforeach
