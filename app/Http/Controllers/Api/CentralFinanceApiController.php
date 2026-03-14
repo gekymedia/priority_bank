@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Central Finance API Controller
@@ -245,33 +246,71 @@ class CentralFinanceApiController extends Controller
     }
 
     /**
-     * Return net balance for the authenticated caller (same as statement "Net balance").
+     * Return net balance for the account identified by the Bearer token.
      * GET /api/central-finance/balance
      *
-     * The Bearer token identifies one user in the bank (e.g. Priority Agriculture, GekyChat,
-     * SchoolsGH). Net is computed as Total credits (income transactions) minus Total debits
-     * (expense transactions) for that user — matching the bank statement "Net balance".
+     * If the token is linked to a system (API Keys / Sources: "Link" when creating the key),
+     * the balance returned is that system's linked user (e.g. Priority Admissions, CUG Access Fee).
+     * Otherwise the balance is the token owner's (the user who created the key).
+     * Net = savings_balance - loan_balance, matching the admin profile and statement "Net balance".
      */
     public function balance(Request $request)
     {
-        $user = $request->user();
-        if (! $user) {
+        $tokenUser = $request->user();
+        if (! $tokenUser) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthenticated',
             ], 401);
         }
 
-        // Net = Total credits - Total debits (same as statement "Net balance")
-        $credits = (float) Transaction::where('user_id', $user->id)->where('type', 'income')->sum('amount');
-        $debits = (float) Transaction::where('user_id', $user->id)->where('type', 'expense')->sum('amount');
-        $netBalance = $credits - $debits;
+        $user = $this->resolveBalanceUser($request);
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User account not found for this token.',
+            ], 404);
+        }
+
+        $netBalance = (float) $user->net_balance;
 
         return response()->json([
             'success' => true,
             'balance' => round($netBalance, 2),
-            'currency' => 'GHS',
+            'currency' => $user->preferred_currency ?? 'GHS',
         ]);
+    }
+
+    /**
+     * Resolve which user's balance to return.
+     * If the current API token is linked to a system (systems_registry.metadata.api_token_id),
+     * return that system's linked user; otherwise return the token owner.
+     */
+    private function resolveBalanceUser(Request $request): ?User
+    {
+        $tokenUser = $request->user();
+        $token = $tokenUser->currentAccessToken();
+        if (! $token && $request->bearerToken()) {
+            $token = PersonalAccessToken::findToken($request->bearerToken());
+        }
+        if (! $token) {
+            return $tokenUser;
+        }
+
+        $tokenId = (int) $token->id;
+        $system = SystemRegistry::whereNotNull('user_id')
+            ->where('active_status', true)
+            ->get()
+            ->first(fn ($s) => (int) ($s->metadata['api_token_id'] ?? 0) === $tokenId);
+
+        if ($system && $system->user_id) {
+            $linkedUser = User::find($system->user_id);
+            if ($linkedUser) {
+                return $linkedUser;
+            }
+        }
+
+        return $tokenUser;
     }
 
     /**
