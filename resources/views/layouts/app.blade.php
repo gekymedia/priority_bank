@@ -623,7 +623,7 @@
                     </a>
                 </div>
                 @php
-                    $routeUser = request()->routeIs('admin.users.show') ? request()->routeParameter('user') : null;
+                    $routeUser = request()->routeIs('admin.users.show') ? request()->route('user') : null;
                     $currentUserId = $routeUser ? (is_object($routeUser) ? $routeUser->id : $routeUser) : null;
                     $subaccountsActive = request()->routeIs('admin.fund-sources.*') || ($currentUserId && ($sidebarSubaccounts ?? collect())->contains('user_id', $currentUserId));
                 @endphp
