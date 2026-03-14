@@ -232,6 +232,14 @@
         .sidebar-submenu-item { margin: 0 0 0 1.5rem; }
         .sidebar-submenu-item .sidebar-link { padding: 10px 16px; font-size: 0.9rem; }
 
+        /* New Transaction Modal: source radio cards */
+        .source-radio-card { -webkit-tap-highlight-color: transparent; }
+        .source-radio-card:hover { background: #f3f4f6 !important; border-color: #d1d5db !important; }
+        .source-radio-card.source-radio-card-selected { background: rgba(79, 70, 229, 0.08) !important; border-color: var(--primary) !important; box-shadow: 0 0 0 1px var(--primary); }
+        .source-radio-card.source-radio-card-selected .source-radio-card-icon { background: rgba(79, 70, 229, 0.2) !important; color: var(--primary) !important; }
+        .source-radio:focus + .source-radio-card-icon,
+        .source-radio:focus ~ .source-radio-card-icon { outline: 2px solid var(--primary); outline-offset: 2px; }
+
         .sidebar-footer {
             padding: 1.5rem;
             border-top: 1px solid rgba(79, 70, 229, 0.1);
@@ -854,44 +862,35 @@
             <div class="modal-body" style="padding: 2rem;">
                 <form id="transactionForm">
                     @csrf
-                    <!-- Source Selection (First) -->
+                    <!-- Source Selection (First) - Personal or Bank as card-style radios -->
+                    @php
+                        $protectedSources = \App\Models\SystemRegistry::where('is_protected', true)->where('active_status', true)->orderBy('name')->get();
+                        $personalCeoSource = $protectedSources->firstWhere('system_id', 'personal_ceo');
+                        $priorityBankSource = $protectedSources->firstWhere('system_id', 'priority_bank');
+                        $users = \App\Models\User::where('status', 'approved')->orderBy('name')->pluck('name', 'id');
+                    @endphp
                     <div class="mb-4">
-                        <label for="modal_external_system_id" class="block text-sm font-medium text-gray-700 mb-2">Source</label>
-                        <select name="external_system_id" id="modal_external_system_id" required
-                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                            @php
-                                // Get all active systems, prioritizing protected sources
-                                $protectedSources = \App\Models\SystemRegistry::where('is_protected', true)
-                                    ->where('active_status', true)
-                                    ->orderBy('name')
-                                    ->get();
-                                $otherSources = \App\Models\SystemRegistry::where('is_protected', false)
-                                    ->where('active_status', true)
-                                    ->orderBy('name')
-                                    ->get();
-                                
-                                // Find Personal(CEO) source for default
-                                $personalCeoSource = $protectedSources->firstWhere('system_id', 'personal_ceo');
-                                $priorityBankSource = $protectedSources->firstWhere('system_id', 'priority_bank');
-                                
-                                // Get users for Priority Bank transactions
-                                $users = \App\Models\User::where('status', 'approved')
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id');
-                            @endphp
-                            @foreach($protectedSources as $source)
-                                <option value="{{ $source->id }}" data-system-id="{{ $source->system_id }}" {{ $source->system_id === 'personal_ceo' ? 'selected' : '' }}>{{ $source->name }}</option>
-                            @endforeach
-                            @if($protectedSources->count() > 0 && $otherSources->count() > 0)
-                                <optgroup label="Other Sources">
-                            @endif
-                            @foreach($otherSources as $source)
-                                <option value="{{ $source->id }}" data-system-id="{{ $source->system_id }}">{{ $source->name }}</option>
-                            @endforeach
-                            @if($protectedSources->count() > 0 && $otherSources->count() > 0)
-                                </optgroup>
-                            @endif
-                        </select>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                        <div class="flex gap-3 flex-wrap">
+                            <label class="source-radio-card flex-1 min-w-[120px] cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 flex items-center gap-3"
+                                style="background: #f9fafb; border-color: #e5e7eb;">
+                                <input type="radio" name="external_system_id" value="{{ $personalCeoSource->id ?? '' }}"
+                                    data-system-id="personal_ceo" class="sr-only source-radio">
+                                <span class="source-radio-card-icon flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(107, 114, 128, 0.2); color: #4b5563;">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <span class="font-semibold text-gray-700">Personal</span>
+                            </label>
+                            <label class="source-radio-card flex-1 min-w-[120px] cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 flex items-center gap-3 source-radio-card-selected"
+                                style="background: rgba(79, 70, 229, 0.08); border-color: var(--primary);">
+                                <input type="radio" name="external_system_id" value="{{ $priorityBankSource->id ?? '' }}"
+                                    data-system-id="priority_bank" class="sr-only source-radio" checked>
+                                <span class="source-radio-card-icon flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(79, 70, 229, 0.2); color: var(--primary);">
+                                    <i class="fas fa-university"></i>
+                                </span>
+                                <span class="font-semibold text-gray-700">Bank</span>
+                            </label>
+                        </div>
                         <span class="error-message text-red-600 text-sm mt-1" id="error_external_system_id" style="display: none;"></span>
                     </div>
 
@@ -900,7 +899,7 @@
                         <label for="modal_user_id" class="block text-sm font-medium text-gray-700 mb-2">@ User</label>
                         <select name="user_id" id="modal_user_id"
                             class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                            <option value="">Select User</option>
+                            <option value="">Search or select user...</option>
                             @foreach($users as $id => $name)
                                 <option value="{{ $id }}">{{ $name }}</option>
                             @endforeach
@@ -1009,6 +1008,7 @@
     @endif
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // Mobile menu toggle
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
@@ -1118,10 +1118,10 @@
                     if (modal) {
                         modal.style.display = 'flex';
                         document.body.style.overflow = 'hidden';
-                        // Focus on first input (Source) after a short delay
-                        setTimeout(() => {
-                            const firstInput = document.getElementById('modal_external_system_id');
-                            if (firstInput) firstInput.focus();
+                        setTimeout(function() {
+                            if (typeof syncSourceCardStyles === 'function') syncSourceCardStyles();
+                            var firstRadio = document.querySelector('input[name="external_system_id"]:checked');
+                            if (firstRadio) firstRadio.focus();
                         }, 100);
                     }
                 });
@@ -1197,15 +1197,47 @@
                 });
             }
 
-            // Handle source change to show/hide user field
-            const sourceSelect = document.getElementById('modal_external_system_id');
+            // Handle source change (Personal vs Bank radio cards) to show/hide user field
+            const sourceRadios = document.querySelectorAll('input[name="external_system_id"].source-radio');
+            const sourceCards = document.querySelectorAll('.source-radio-card');
             const userSelectField = document.getElementById('userSelectField');
             const userSelect = document.getElementById('modal_user_id');
             
+            function getSelectedSourceRadio() {
+                return document.querySelector('input[name="external_system_id"]:checked');
+            }
+            
+            function getSourceSystemId() {
+                const radio = getSelectedSourceRadio();
+                return radio ? radio.getAttribute('data-system-id') : null;
+            }
+            
+            function syncSourceCardStyles() {
+                if (!sourceCards || !sourceCards.length) return;
+                sourceCards.forEach(function(card) {
+                    card.classList.remove('source-radio-card-selected');
+                    card.style.background = '#f9fafb';
+                    card.style.borderColor = '#e5e7eb';
+                    var icon = card.querySelector('.source-radio-card-icon');
+                    if (icon) { icon.style.background = 'rgba(107, 114, 128, 0.2)'; icon.style.color = '#4b5563'; }
+                });
+                var sel = getSelectedSourceRadio();
+                if (sel) {
+                    var card = sel.closest('.source-radio-card');
+                    if (card) {
+                        card.classList.add('source-radio-card-selected');
+                        card.style.background = 'rgba(79, 70, 229, 0.08)';
+                        card.style.borderColor = 'var(--primary)';
+                        var icon = card.querySelector('.source-radio-card-icon');
+                        if (icon) { icon.style.background = 'rgba(79, 70, 229, 0.2)'; icon.style.color = 'var(--primary)'; }
+                    }
+                }
+            }
+            
             function toggleUserField() {
-                if (sourceSelect && userSelectField) {
-                    const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
-                    const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
+                const selectedRadio = getSelectedSourceRadio();
+                const systemId = selectedRadio ? selectedRadio.getAttribute('data-system-id') : null;
+                if (userSelectField) {
                     const expenseLabel = document.getElementById('expense_label');
                     const incomeLabel = document.getElementById('income_label');
                     const categoryField = document.getElementById('categoryField');
@@ -1295,38 +1327,40 @@
                 }
             }
             
-            if (sourceSelect) {
-                sourceSelect.addEventListener('change', function() {
-                    toggleUserField();
-                    // Update categories when source changes
-                    if (categorySelect) {
-                        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
-                        const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
-                        if (systemId !== 'priority_bank') {
-                            updateCategories();
+            // Source radio cards: update selected card style and toggle user field
+            if (sourceRadios && sourceRadios.length) {
+                sourceRadios.forEach(function(radio) {
+                    radio.addEventListener('change', function() {
+                        sourceCards.forEach(function(card) {
+                            card.classList.remove('source-radio-card-selected');
+                            card.style.background = '#f9fafb';
+                            card.style.borderColor = '#e5e7eb';
+                            var icon = card.querySelector('.source-radio-card-icon');
+                            if (icon) { icon.style.background = 'rgba(107, 114, 128, 0.2)'; icon.style.color = '#4b5563'; }
+                        });
+                        var card = radio.closest('.source-radio-card');
+                        if (card) {
+                            card.classList.add('source-radio-card-selected');
+                            card.style.background = 'rgba(79, 70, 229, 0.08)';
+                            card.style.borderColor = 'var(--primary)';
+                            var icon = card.querySelector('.source-radio-card-icon');
+                            if (icon) { icon.style.background = 'rgba(79, 70, 229, 0.2)'; icon.style.color = 'var(--primary)'; }
                         }
-                    }
+                        toggleUserField();
+                        if (getSourceSystemId() !== 'priority_bank') updateCategories();
+                    });
                 });
-                // Check on modal open
                 setTimeout(function() {
                     toggleUserField();
-                    // Initialize Select2 if Priority Bank is selected
-                    const sourceSelect = document.getElementById('modal_external_system_id');
-                    if (sourceSelect) {
-                        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
-                        const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
-                        if (systemId === 'priority_bank') {
-                            const userSelect = document.getElementById('modal_user_id');
-                            var hasSelect2 = userSelect && userSelect.classList && userSelect.classList.contains('select2-hidden-accessible');
-                            if (userSelect && typeof $ !== 'undefined' && typeof $.fn !== 'undefined' && typeof $.fn.select2 === 'function' && !hasSelect2) {
-                                $(userSelect).select2({
-                                    theme: 'bootstrap-5',
-                                    placeholder: 'Select User',
-                                    allowClear: true,
-                                    width: '100%',
-                                    dropdownParent: modal
-                                });
-                            }
+                    if (getSourceSystemId() === 'priority_bank' && userSelect && typeof $ !== 'undefined' && $.fn.select2) {
+                        if (!userSelect.classList.contains('select2-hidden-accessible')) {
+                            $(userSelect).select2({
+                                theme: 'bootstrap-5',
+                                placeholder: 'Search or select user...',
+                                allowClear: true,
+                                width: '100%',
+                                dropdownParent: modal
+                            });
                         }
                     }
                 }, 100);
@@ -1368,13 +1402,8 @@
                 updateCategories();
                 // Initialize Priority Bank category when modal opens with Bank selected
                 setTimeout(function() {
-                    const sourceSelectEl = document.getElementById('modal_external_system_id');
-                    if (sourceSelectEl) {
-                        const selectedOption = sourceSelectEl.options[sourceSelectEl.selectedIndex];
-                        const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
-                        if (systemId === 'priority_bank') {
-                            updatePriorityBankCategory();
-                        }
+                    if (getSourceSystemId() === 'priority_bank') {
+                        updatePriorityBankCategory();
                     }
                 }, 100);
             }
@@ -1403,8 +1432,7 @@
                     const formData = new FormData(transactionForm);
                     
                     // If Priority Bank is selected, use the hidden category input instead of the select
-                    const selectedOption = sourceSelect ? sourceSelect.options[sourceSelect.selectedIndex] : null;
-                    const systemId = selectedOption ? selectedOption.getAttribute('data-system-id') : null;
+                    const systemId = getSourceSystemId();
                     const categorySelect = document.getElementById('modal_category');
                     
                     // Clear any existing category from formData to avoid duplicates
