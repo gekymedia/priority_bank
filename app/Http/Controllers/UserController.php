@@ -297,10 +297,10 @@ class UserController extends Controller
                 ->with('error', 'You cannot delete your own account.');
         }
 
-        $user->delete();
+        $user->delete(); // soft delete: user is hidden from listings
 
         return redirect()->route('admin.users.index')
-            ->with('success', 'User deleted successfully.');
+            ->with('success', 'User has been hidden from the system.');
     }
 
     /**
