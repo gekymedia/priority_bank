@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
+use App\Services\UserNotificationService;
 
 /**
  * Central Finance API Controller
@@ -123,6 +124,27 @@ class CentralFinanceApiController extends Controller
                 'external_transaction_id' => $validated['external_transaction_id'],
             ]);
 
+            // Notify the owning user about the newly created transaction.
+            // (Do not notify when returning an existing idempotent transaction above.)
+            try {
+                $ownerUser = User::find($userId);
+                if ($ownerUser) {
+                    (new UserNotificationService())->notifyTransactionCreated(
+                        $ownerUser,
+                        'income',
+                        $validated['amount'],
+                        $categoryName,
+                        $validated['notes'] ?? null
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to notify transaction owner (API income)', [
+                    'system_id' => $validated['system_id'],
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Income recorded successfully',
@@ -224,6 +246,26 @@ class CentralFinanceApiController extends Controller
                 'transaction_id' => $transaction->id,
                 'external_transaction_id' => $validated['external_transaction_id'],
             ]);
+
+            // Notify the owning user about the newly created transaction.
+            try {
+                $ownerUser = User::find($userId);
+                if ($ownerUser) {
+                    (new UserNotificationService())->notifyTransactionCreated(
+                        $ownerUser,
+                        'expense',
+                        $validated['amount'],
+                        $categoryName,
+                        $validated['notes'] ?? null
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to notify transaction owner (API expense)', [
+                    'system_id' => $validated['system_id'],
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return response()->json([
                 'success' => true,

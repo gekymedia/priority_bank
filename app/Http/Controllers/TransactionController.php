@@ -87,7 +87,8 @@ class TransactionController extends Controller
                 'description' => 'nullable|string',
                 'notes' => 'nullable|string|max:1000',
                 'external_system_id' => 'nullable|exists:systems_registry,id',
-                'user_id' => 'nullable|exists:users,id'
+                'user_id' => 'nullable|exists:users,id',
+                'notify_user_on_create' => 'nullable|boolean',
             ]);
 
             // Get Priority Bank source
@@ -112,10 +113,11 @@ class TransactionController extends Controller
                 'external_system_id' => $validated['external_system_id'] ?? null
             ]);
 
-            // Notify user if admin created transaction for another user
-            if (auth()->user()->isAdmin() && isset($validated['user_id']) && $validated['user_id'] != auth()->id()) {
+            // Optional notification (controlled by checkbox in the modal).
+            if ($request->boolean('notify_user_on_create')) {
                 try {
-                    $user = \App\Models\User::find($validated['user_id']);
+                    $ownerUserId = (int) ($validated['user_id'] ?? auth()->id());
+                    $user = \App\Models\User::find($ownerUserId);
                     if ($user) {
                         $userNotificationService = new \App\Services\UserNotificationService();
                         $userNotificationService->notifyTransactionCreated(
@@ -127,9 +129,9 @@ class TransactionController extends Controller
                         );
                     }
                 } catch (\Exception $e) {
-                    // Log notification error but don't fail the transaction
+                    // Log notification error but don't fail the transaction.
                     \Illuminate\Support\Facades\Log::warning('Failed to send transaction notification', [
-                        'user_id' => $validated['user_id'],
+                        'owner_user_id' => $validated['user_id'] ?? auth()->id(),
                         'error' => $e->getMessage(),
                     ]);
                 }

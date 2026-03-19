@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
+use App\Models\Income;
 use App\Models\Transaction;
+use App\Services\UserNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -98,7 +100,7 @@ class LoanApiController extends Controller
         $loan->notes = $loan->notes . ' | Lost';
         $loan->save();
         if ($remaining > 0) {
-            Transaction::create([
+            $transaction = Transaction::create([
                 'user_id' => $loan->user_id,
                 'type' => 'expense',
                 'category' => 'Loan loss',
@@ -107,6 +109,26 @@ class LoanApiController extends Controller
                 'description' => $data['notes'] ?? 'Loan loss for ' . $loan->borrower_name,
                 'notes' => null,
             ]);
+
+            // Notify the owning user that an expense transaction was created.
+            try {
+                $ownerUser = $loan->user;
+                if ($ownerUser) {
+                    (new UserNotificationService())->notifyTransactionCreated(
+                        $ownerUser,
+                        'expense',
+                        $remaining,
+                        'Loan loss',
+                        $data['notes'] ?? null
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to notify transaction owner (API loan markLost)', [
+                    'loan_id' => $loan->id,
+                    'user_id' => $loan->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
         return response()->json($loan);
     }

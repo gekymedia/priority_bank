@@ -995,6 +995,20 @@
                         <span class="error-message text-red-600 text-sm mt-1" id="error_date" style="display: none;"></span>
                     </div>
 
+                    <!-- Optional notification after create -->
+                    <div class="mb-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox"
+                                name="notify_user_on_create"
+                                value="1"
+                                class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 rounded"
+                            >
+                            <span class="ml-2 text-sm font-medium text-gray-700">
+                                Notify the transaction owner after saving
+                            </span>
+                        </label>
+                    </div>
+
                     <!-- Submit Button -->
                     <div class="flex justify-end gap-3 mt-6">
                         <button type="button" id="cancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50" style="transition: var(--transition);">
