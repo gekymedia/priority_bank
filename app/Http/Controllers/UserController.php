@@ -141,25 +141,10 @@ class UserController extends Controller
                 'reference' => $t->id,
             ]);
 
-        $savings = $user->savings()
-            ->when($startDate, fn ($q) => $q->where('deposit_date', '>=', $startDate))
-            ->when($endDate, fn ($q) => $q->where('deposit_date', '<=', $endDate))
-            ->orderBy('deposit_date', 'desc')
-            ->orderBy('id', 'desc')
-            ->get()
-            ->map(fn ($s) => (object) [
-                'date' => $s->deposit_date,
-                'type' => 'income',
-                'source' => 'savings',
-                'description' => 'Savings deposit' . ($s->reference ? " ({$s->reference})" : ''),
-                'category' => 'Savings',
-                'amount' => (float) $s->amount,
-                'reference' => $s->reference,
-                'status' => $s->status,
-            ]);
-
-        $entries = $transactions->concat($savings)
-            ->sortByDesc(fn ($e) => $e->date->format('Y-m-d') . '-' . ($e->source === 'savings' ? 's' : 't') . '-' . ($e->reference ?? 0))
+        // Statement uses transactions table only to avoid double counting
+        // where a savings deposit is also represented as a transaction.
+        $entries = $transactions
+            ->sortByDesc(fn ($e) => $e->date->format('Y-m-d') . '-t-' . ($e->reference ?? 0))
             ->values();
 
         $totalCredits = $entries->where('type', 'income')->sum('amount');
