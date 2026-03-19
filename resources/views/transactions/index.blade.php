@@ -4,6 +4,19 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
+    @php
+        // Used to give each calendar day a consistent, subtle highlight (low opacity).
+        // Income/expense text colors remain, but background becomes date-based.
+        $dayBgPalette = [
+            'rgba(59, 130, 246, 0.06)',  // blue-500
+            'rgba(16, 185, 129, 0.06)',  // emerald-500
+            'rgba(245, 158, 11, 0.06)',  // amber-500
+            'rgba(239, 68, 68, 0.06)',   // red-500
+            'rgba(168, 85, 247, 0.06)',  // purple-500
+            'rgba(34, 197, 94, 0.06)',   // green-500
+        ];
+        $dayBgPaletteCount = count($dayBgPalette);
+    @endphp
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">
             @if(Auth::user()->isAdmin() && request('user_id') == (string) auth()->id())
@@ -88,6 +101,17 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($transactions as $transaction)
+                    @php
+                        $dayKey = $transaction->date?->format('Y-m-d') ?? ($transaction->created_at?->format('Y-m-d') ?? null);
+                        $dayIdx = 0;
+                        if ($dayKey !== null) {
+                            $dayIdx = crc32($dayKey) % $dayBgPaletteCount;
+                            if ($dayIdx < 0) {
+                                $dayIdx += $dayBgPaletteCount;
+                            }
+                        }
+                        $dayBg = $dayBgPalette[$dayIdx] ?? $dayBgPalette[0];
+                    @endphp
                     <tr class="transaction-row" data-search="{{ strtolower(implode(' ', array_filter([
                         $transaction->date->format('M d Y'),
                         $transaction->user?->name ?? '',
@@ -96,7 +120,7 @@
                         $transaction->category ?? '',
                         (string) $transaction->amount,
                         $transaction->externalSystem?->name ?? ''
-                    ]))) }}">
+                    ]))) }}" style="background-color: {{ $dayBg }};">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $transaction->date->format('M d, Y') }}
                         </td>
@@ -115,7 +139,10 @@
                         </td>
                         @endif
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $transaction->type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                            <span
+                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $transaction->type === 'income' ? 'text-green-800' : 'text-red-800' }}"
+                                style="background-color: {{ $dayBg }};"
+                            >
                                 {{ ucfirst($transaction->type) }}
                             </span>
                         </td>

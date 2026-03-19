@@ -75,7 +75,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($users as $user)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="{{ $user->ownedSystems->isEmpty() ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50' }}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 @if($user->profile_photo_path)
