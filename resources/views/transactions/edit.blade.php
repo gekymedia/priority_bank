@@ -67,8 +67,9 @@
             <!-- Description -->
             <div class="mb-4">
                 <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                <textarea name="description" id="description" rows="3"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ old('description', $transaction->description) }}</textarea>
+                <p class="text-xs text-gray-500 mt-0.5">Summary or bucket breakdown (shown first in details).</p>
+                <textarea name="description" id="description" rows="6"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono text-sm">{{ old('description', \App\Models\Transaction::textForDisplay($transaction->description)) }}</textarea>
                 @error('description')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -76,10 +77,11 @@
 
             <!-- Notes (pre-approval / internal) -->
             <div class="mb-4">
-                <label for="notes" class="block text-sm font-medium text-gray-700">Note (pre-approval / internal)</label>
-                <textarea name="notes" id="notes" rows="2"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Optional note visible in transaction details">{{ old('notes', $transaction->notes) }}</textarea>
+                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                <p class="text-xs text-gray-500 mt-0.5">Full day-by-day list or internal notes (shown below description).</p>
+                <textarea name="notes" id="notes" rows="10"
+                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono text-sm"
+                    placeholder="Optional long-form detail">{{ old('notes', \App\Models\Transaction::textForDisplay($transaction->notes)) }}</textarea>
                 @error('notes')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror

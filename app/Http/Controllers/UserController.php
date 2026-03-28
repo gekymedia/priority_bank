@@ -24,9 +24,9 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('account_id', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('account_id', 'like', "%{$search}%");
             });
         }
 
@@ -95,6 +95,7 @@ class UserController extends Controller
         if ($request->boolean('send_welcome_message')) {
             $message .= ' Welcome message sent via all channels.';
         }
+
         return redirect()->route('admin.users.index')
             ->with('success', $message);
     }
@@ -151,7 +152,7 @@ class UserController extends Controller
         // Statement uses transactions table only to avoid double counting
         // where a savings deposit is also represented as a transaction.
         $entries = $transactions
-            ->sortByDesc(fn ($e) => $e->date->format('Y-m-d') . '-t-' . ($e->reference ?? 0))
+            ->sortByDesc(fn ($e) => $e->date->format('Y-m-d').'-t-'.($e->reference ?? 0))
             ->values();
 
         $totalCredits = $entries->where('type', 'income')->sum('amount');
@@ -185,7 +186,8 @@ class UserController extends Controller
             'netBalance' => $data['netBalance'],
         ])->setPaper('a4', 'portrait');
 
-        $filename = 'statement-' . $user->name . '-' . now()->format('Y-m-d') . '.pdf';
+        $filename = 'statement-'.$user->name.'-'.now()->format('Y-m-d').'.pdf';
+
         return $pdf->download($filename);
     }
 
@@ -209,7 +211,7 @@ class UserController extends Controller
         ])->setPaper('a4', 'portrait');
 
         $pdfContent = $pdf->output();
-        $filename = 'statement-' . preg_replace('/[^a-z0-9_-]/i', '-', $user->name) . '-' . now()->format('Y-m-d') . '.pdf';
+        $filename = 'statement-'.preg_replace('/[^a-z0-9_-]/i', '-', $user->name).'-'.now()->format('Y-m-d').'.pdf';
 
         $body = "Dear {$user->name},\n\nPlease find your Priority Bank statement attached to this email.\n\nBest regards,\nPriority Bank";
         \Illuminate\Support\Facades\Mail::raw($body, function ($message) use ($user, $pdfContent, $filename) {
@@ -218,7 +220,7 @@ class UserController extends Controller
                 ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
         });
 
-        return redirect()->back()->with('success', 'Statement has been sent to ' . $user->email . '.');
+        return redirect()->back()->with('success', 'Statement has been sent to '.$user->email.'.');
     }
 
     /**
@@ -228,13 +230,14 @@ class UserController extends Controller
     {
         $request->validate(['channel' => ['required', 'string', Rule::in(['all', 'gekychat', 'sms', 'email', 'whatsapp'])]]);
         $notificationService->sendWelcomeMessage($user, $request->channel);
-        $channelLabel = match($request->channel) {
+        $channelLabel = match ($request->channel) {
             'all' => 'All channels',
             'gekychat' => 'GekyChat',
             'sms' => 'SMS',
             'email' => 'Email',
             'whatsapp' => 'WhatsApp',
         };
+
         return redirect()->back()->with('success', "Welcome message sent to {$user->name} via {$channelLabel}.");
     }
 
@@ -268,7 +271,7 @@ class UserController extends Controller
         $user->role = $validated['role'];
         $user->preferred_currency = $validated['preferred_currency'] ?? 'GHS';
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
@@ -332,7 +335,7 @@ class UserController extends Controller
 
         // Store the original admin user ID in session
         session(['impersonating' => auth()->id()]);
-        
+
         // Log in as the target user
         auth()->login($user);
 
@@ -345,7 +348,7 @@ class UserController extends Controller
      */
     public function stopImpersonating()
     {
-        if (!session()->has('impersonating')) {
+        if (! session()->has('impersonating')) {
             return redirect()->route('dashboard')
                 ->with('error', 'You are not currently impersonating anyone.');
         }

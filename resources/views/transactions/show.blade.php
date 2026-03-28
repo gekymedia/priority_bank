@@ -60,10 +60,16 @@
                             <p class="text-sm font-medium text-gray-500">Date</p>
                             <p class="mt-1 text-sm text-gray-900">{{ $transaction->date->format('M d, Y') }}</p>
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Description</p>
-                            <p class="mt-1 text-sm text-gray-900">{{ $transaction->description ?? 'N/A' }}</p>
+                        <div class="rounded-lg border border-indigo-100 bg-indigo-50/90 p-4 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-800">Description</p>
+                            <p class="mt-2 text-sm text-indigo-950 whitespace-pre-wrap font-mono leading-relaxed">{{ \App\Models\Transaction::textForDisplay($transaction->description) ?: 'N/A' }}</p>
                         </div>
+                        @if($transaction->notes)
+                        <div class="rounded-lg border border-amber-100 bg-amber-50/90 p-4 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-amber-900">Notes</p>
+                            <p class="mt-2 text-sm text-amber-950 whitespace-pre-wrap font-mono leading-relaxed">{{ \App\Models\Transaction::textForDisplay($transaction->notes) }}</p>
+                        </div>
+                        @endif
                         <div>
                             <p class="text-sm font-medium text-gray-500">Created</p>
                             <p class="mt-1 text-sm text-gray-900">{{ $transaction->created_at->format('M d, Y h:i A') }}</p>

@@ -33,54 +33,66 @@
         @endif
     </div>
 
-    <!-- Search: filter on page as you type -->
-    <div class="bg-white rounded-lg shadow-md p-4 mb-4">
-        <label for="transactionSearch" class="block text-sm font-medium text-gray-700 mb-2">Search (filters all columns as you type)</label>
-        <input type="text" id="transactionSearch" placeholder="Search date, user, type, description, category, amount…" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-    </div>
+    <!-- Search + filters: GET form (search runs on server across all transactions, debounced while typing) -->
+    <form method="GET" action="{{ route('transactions.index') }}" id="transactionsFilterForm" class="space-y-4 mb-6">
+        @if(request()->filled('user_id'))
+            <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+        @endif
 
-    <!-- Transaction Filters -->
-    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <form method="GET" action="{{ route('transactions.index') }}">
-            @if(request()->filled('user_id'))
-                <input type="hidden" name="user_id" value="{{ request('user_id') }}">
-            @endif
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <label for="transactionSearch" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <input type="search"
+                   name="search"
+                   id="transactionSearch"
+                   value="{{ request('search') }}"
+                   placeholder="Date, user, email, type, description, category, amount, notes, source system…"
+                   autocomplete="off"
+                   class="block w-full rounded-md border border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2">
+            <p class="mt-2 text-xs text-gray-500">
+                Filters <strong>all</strong> transactions in the database (not only the current page). Results update shortly after you stop typing.
+            </p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- Type Filter -->
                 <div>
                     <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
-                    <select id="type" name="type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <select id="type" name="type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                         <option value="">All Types</option>
                         <option value="income" {{ request('type') == 'income' ? 'selected' : '' }}>Income</option>
                         <option value="expense" {{ request('type') == 'expense' ? 'selected' : '' }}>Expense</option>
                     </select>
                 </div>
 
-                <!-- Date Range -->
                 <div>
                     <label for="start_date" class="block text-sm font-medium text-gray-700">From</label>
-                    <input type="date" id="start_date" name="start_date" value="{{ request('start_date') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="date" id="start_date" name="start_date" value="{{ request('start_date') }}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2">
                 </div>
 
                 <div>
                     <label for="end_date" class="block text-sm font-medium text-gray-700">To</label>
-                    <input type="date" id="end_date" name="end_date" value="{{ request('end_date') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="date" id="end_date" name="end_date" value="{{ request('end_date') }}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-3 py-2">
                 </div>
 
-                <!-- Submit Button -->
-                <div class="flex items-end">
+                <div class="flex items-end gap-2 flex-wrap">
                     <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md h-10">
-                        Filter
+                        Apply filters
                     </button>
-                    @if(request()->has('type') || request()->has('start_date') || request()->has('end_date') || request()->has('user_id'))
-                        <a href="{{ route('transactions.index') }}" class="ml-2 text-gray-500 hover:text-gray-700 h-10 flex items-center">
-                            Clear
+                    @if(request()->anyFilled(['type', 'start_date', 'end_date', 'user_id', 'search']))
+                        <a href="{{ request()->filled('user_id') ? route('transactions.index', ['user_id' => request('user_id')]) : route('transactions.index') }}" class="text-gray-500 hover:text-gray-700 h-10 flex items-center px-2">
+                            Clear all
                         </a>
                     @endif
                 </div>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
+
+    @if(request()->filled('search'))
+        <p class="text-sm text-gray-600 mb-3">
+            <strong>{{ $transactions->total() }}</strong> transaction(s) match your search.
+        </p>
+    @endif
 
     <!-- Transactions Table -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -100,7 +112,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach($transactions as $transaction)
+                    @forelse($transactions as $transaction)
                     @php
                         $dayKey = $transaction->date?->format('Y-m-d') ?? ($transaction->created_at?->format('Y-m-d') ?? null);
                         $dayIdx = 0;
@@ -112,15 +124,7 @@
                         }
                         $dayBg = $dayBgPalette[$dayIdx] ?? $dayBgPalette[0];
                     @endphp
-                    <tr class="transaction-row" data-search="{{ strtolower(implode(' ', array_filter([
-                        $transaction->date->format('M d Y'),
-                        $transaction->user?->name ?? '',
-                        $transaction->type,
-                        $transaction->description ?? '',
-                        $transaction->category ?? '',
-                        (string) $transaction->amount,
-                        $transaction->externalSystem?->name ?? ''
-                    ]))) }}" style="background-color: {{ $dayBg }};">
+                    <tr class="transaction-row" style="background-color: {{ $dayBg }};">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $transaction->date->format('M d, Y') }}
                         </td>
@@ -147,12 +151,16 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                            <span class="inline-block align-middle">{{ Str::limit($transaction->description ?? '—', 50) }}</span>
+                            @php
+                                $detailDesc = \App\Models\Transaction::textForDisplay($transaction->description ?? '');
+                                $detailNotes = \App\Models\Transaction::textForDisplay($transaction->depositSaving?->notes ?? $transaction->notes ?? '');
+                            @endphp
+                            <span class="inline-block align-middle">{{ Str::limit($detailDesc !== '' ? $detailDesc : '—', 50) }}</span>
                             <button type="button"
                                 class="transaction-view-more ml-1 inline-flex align-middle text-blue-600 hover:text-blue-800 focus:outline-none"
                                 title="View details"
-                                data-description="{{ e($transaction->description ?? '') }}"
-                                data-notes="{{ e($transaction->depositSaving?->notes ?? $transaction->notes ?? '') }}"
+                                data-description-b64="{{ base64_encode($detailDesc) }}"
+                                data-notes-b64="{{ base64_encode($detailNotes) }}"
                                 aria-label="View description and notes">
                                 <i class="fas fa-info-circle text-sm"></i>
                             </button>
@@ -172,7 +180,17 @@
                             </form>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="{{ Auth::user()->isAdmin() ? 7 : 6 }}" class="px-6 py-12 text-center text-gray-500">
+                            @if(request()->filled('search') || request()->anyFilled(['type', 'start_date', 'end_date']))
+                                No transactions match your current filters.
+                            @else
+                                No transactions yet.
+                            @endif
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -189,21 +207,21 @@
 <div id="transactionDetailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-modal="true" role="dialog">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-black/50" id="transactionDetailModalBackdrop"></div>
-        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
-            <div class="flex justify-between items-start mb-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col p-6 z-10">
+            <div class="flex justify-between items-start mb-4 shrink-0">
                 <h3 class="text-lg font-semibold text-gray-900">Transaction details</h3>
                 <button type="button" id="transactionDetailModalClose" class="text-gray-400 hover:text-gray-600" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="space-y-3 text-sm">
-                <div>
-                    <p class="font-medium text-gray-600">Description</p>
-                    <p id="transactionDetailDescription" class="mt-1 text-gray-900 whitespace-pre-wrap">—</p>
+            <div class="space-y-4 text-sm overflow-y-auto min-h-0 pr-1">
+                <div class="rounded-lg border border-indigo-100 bg-indigo-50/90 p-3 shadow-sm">
+                    <p class="font-semibold text-indigo-800 text-xs uppercase tracking-wide">Description</p>
+                    <p id="transactionDetailDescription" class="mt-2 text-indigo-950 whitespace-pre-wrap font-mono text-xs sm:text-sm leading-relaxed">—</p>
                 </div>
-                <div id="transactionDetailNotesWrap" class="hidden">
-                    <p class="font-medium text-gray-600">Note</p>
-                    <p id="transactionDetailNotes" class="mt-1 text-gray-900 whitespace-pre-wrap">—</p>
+                <div id="transactionDetailNotesWrap" class="hidden rounded-lg border border-amber-100 bg-amber-50/90 p-3 shadow-sm">
+                    <p class="font-semibold text-amber-900 text-xs uppercase tracking-wide">Notes</p>
+                    <p id="transactionDetailNotes" class="mt-2 text-amber-950 whitespace-pre-wrap font-mono text-xs sm:text-sm leading-relaxed">—</p>
                 </div>
             </div>
         </div>
@@ -213,16 +231,20 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Live search: filter table rows by all columns as user types
+        // Server-side search: debounce GET submit so typing searches the full database (all pages)
+        var form = document.getElementById('transactionsFilterForm');
         var searchInput = document.getElementById('transactionSearch');
-        var rows = document.querySelectorAll('.transaction-row');
-        if (searchInput) {
+        var searchDebounceTimer = null;
+        if (form && searchInput) {
             searchInput.addEventListener('input', function() {
-                var q = (this.value || '').toLowerCase().trim();
-                rows.forEach(function(tr) {
-                    var text = (tr.getAttribute('data-search') || '').toLowerCase();
-                    tr.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
-                });
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(function() {
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                }, 450);
             });
         }
 
@@ -250,6 +272,22 @@
         const detailBackdrop = document.getElementById('transactionDetailModalBackdrop');
         const detailClose = document.getElementById('transactionDetailModalClose');
 
+        function decodeTxDetailB64(b64) {
+            if (!b64 || String(b64).trim() === '') {
+                return '';
+            }
+            try {
+                var binary = atob(b64);
+                var bytes = new Uint8Array(binary.length);
+                for (var i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return new TextDecoder('utf-8').decode(bytes);
+            } catch (e) {
+                return '';
+            }
+        }
+
         function openDetailModal(description, notes) {
             detailDesc.textContent = description || '—';
             if (notes && notes.trim() !== '') {
@@ -269,7 +307,10 @@
 
         document.querySelectorAll('.transaction-view-more').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                openDetailModal(this.getAttribute('data-description') || '', this.getAttribute('data-notes') || '');
+                openDetailModal(
+                    decodeTxDetailB64(this.getAttribute('data-description-b64')),
+                    decodeTxDetailB64(this.getAttribute('data-notes-b64'))
+                );
             });
         });
         if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetailModal);

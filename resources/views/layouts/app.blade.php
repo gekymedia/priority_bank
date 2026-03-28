@@ -972,17 +972,20 @@
                     <!-- Description -->
                     <div class="mb-4">
                         <label for="modal_description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                        <textarea name="description" id="modal_description" rows="3"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3"></textarea>
+                        <p class="text-xs text-gray-500 mb-1">Summary or bucket breakdown (e.g. totals by category). Shown first in transaction details.</p>
+                        <textarea name="description" id="modal_description" rows="6"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 font-mono text-sm"
+                            placeholder="Optional — e.g. table of buckets and amounts"></textarea>
                         <span class="error-message text-red-600 text-sm mt-1" id="error_description" style="display: none;"></span>
                     </div>
 
-                    <!-- Notes (pre-approval / internal) -->
+                    <!-- Notes -->
                     <div class="mb-4">
-                        <label for="modal_notes" class="block text-sm font-medium text-gray-700 mb-2">Note (pre-approval / internal)</label>
-                        <textarea name="notes" id="modal_notes" rows="2"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3"
-                            placeholder="Optional note visible in transaction details"></textarea>
+                        <label for="modal_notes" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                        <p class="text-xs text-gray-500 mb-1">Full detail: day-by-day list, pre-approval context, or internal notes. Shown below description.</p>
+                        <textarea name="notes" id="modal_notes" rows="10"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 font-mono text-sm"
+                            placeholder="Optional — long-form breakdown"></textarea>
                         <span class="error-message text-red-600 text-sm mt-1" id="error_notes" style="display: none;"></span>
                     </div>
 

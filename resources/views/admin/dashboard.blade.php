@@ -448,7 +448,7 @@
                         </div>
                         @endif
                         <div>
-                            <p class="font-medium">{{ $transaction->description ?? $transaction->category ?? ucfirst($transaction->type) }}</p>
+                            <p class="font-medium">{{ \App\Models\Transaction::textForDisplay($transaction->description) ?: ($transaction->category ?? ucfirst($transaction->type)) }}</p>
                             <p class="text-sm text-gray-500">{{ $transaction->date->format('M d, Y h:i A') }}</p>
                             <p class="text-xs text-gray-500 mt-0.5">
                                 Account: {{ $transaction->user?->name ?? 'N/A' }}{{ $transaction->externalSystem ? ' · ' . $transaction->externalSystem->name : '' }}

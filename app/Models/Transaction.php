@@ -85,4 +85,18 @@ class Transaction extends Model
     {
         return $query->whereBetween('date', [$startDate, $endDate]);
     }
+
+    /**
+     * Decode HTML entities and normalize line breaks for UI (legacy JSON imports often store &amp;, &#039;, \r\n).
+     */
+    public static function textForDisplay(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return str_replace(["\r\n", "\r"], "\n", $decoded);
+    }
 }
