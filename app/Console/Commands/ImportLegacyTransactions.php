@@ -13,7 +13,7 @@ class ImportLegacyTransactions extends Command
 {
     protected $signature = 'transactions:import-legacy
                             {--file= : Path to JSON file (default: storage/app/legacy_imports/transactions_2025.json)}
-                            {--user-id= : Owner user id for rows that omit user_id (defaults to LEGACY_IMPORT_USER_ID from .env)}
+                            {--user-id= : Fallback owner when JSON omits user_id and systems_registry has no user for system_id (optional if every row resolves)}
                             {--dry-run : Validate and list rows without inserting}
                             {--allow-missing-system : Set external_system_id to null if system_id is unknown}';
 
@@ -41,11 +41,6 @@ class ImportLegacyTransactions extends Command
         }
 
         $defaultUserId = $this->resolveDefaultUserId();
-        if ($defaultUserId === null) {
-            $this->error('Set default owner: --user-id=123 or LEGACY_IMPORT_USER_ID in .env');
-
-            return Command::FAILURE;
-        }
 
         $rows = $data['transactions'];
         $allowMissing = $this->option('allow-missing-system');
@@ -88,6 +83,8 @@ class ImportLegacyTransactions extends Command
 
             $uid = $this->resolveUserIdForLegacyRow($row, $systemId, $defaultUserId, $lineNum);
             if ($uid === null) {
+                $this->error("Row {$lineNum}: cannot resolve user_id (set row user_id, LEGACY_IMPORT_USER_ID / --user-id, or systems_registry.user_id for system_id).");
+
                 return Command::FAILURE;
             }
 
@@ -218,7 +215,11 @@ class ImportLegacyTransactions extends Command
             }
         }
 
-        return $defaultUserId;
+        if ($defaultUserId !== null) {
+            return $defaultUserId;
+        }
+
+        return null;
     }
 
     private function validateRow(array $row, int $lineNum): ?string
