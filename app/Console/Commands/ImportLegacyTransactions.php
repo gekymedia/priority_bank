@@ -197,7 +197,7 @@ class ImportLegacyTransactions extends Command
     /**
      * JSON user_id wins; else config legacy_import.system_user_map; else systems_registry.user_id for system_id; else default.
      */
-    private function resolveUserIdForLegacyRow(array $row, ?string $systemId, int $defaultUserId, int $lineNum): ?int
+    private function resolveUserIdForLegacyRow(array $row, ?string $systemId, ?int $defaultUserId, int $lineNum): ?int
     {
         if (isset($row['user_id']) && $row['user_id'] !== null && $row['user_id'] !== '') {
             return (int) $row['user_id'];
