@@ -147,6 +147,8 @@ class UserController extends Controller
                 'category' => $t->category,
                 'amount' => (float) $t->amount,
                 'reference' => $t->id,
+                'transaction_id' => $t->id,
+                'has_notes' => filled($t->notes),
             ]);
 
         // Statement uses transactions table only to avoid double counting

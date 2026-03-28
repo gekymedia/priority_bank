@@ -9,6 +9,9 @@
         <h1 class="text-3xl font-bold">Statement: {{ $user->name }}</h1>
         <p class="text-gray-600 mt-1">{{ $user->email }} · {{ $user->phone ?? 'N/A' }}</p>
         <p class="text-sm text-gray-500 mt-1">Savings balance: GHS {{ number_format($user->savings_balance, 2) }} · Loan balance: GHS {{ number_format($user->loan_balance, 2) }} · Net: GHS {{ number_format($user->net_balance, 2) }}</p>
+        <p class="text-sm text-gray-600 mt-3 max-w-3xl">
+            Each row is one ledger entry. <strong>Legacy [rollup]</strong> rows are one total per month per account; the full month diary (every line that rolled into that total) is stored in <strong>Notes</strong> on the transaction — use <strong>Details</strong> below to open it. Day-to-day entries (e.g. egg sales, feed) appear as their own rows.
+        </p>
     </div>
 
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -79,6 +82,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category / Source</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -100,10 +104,20 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium {{ $entry->type === 'income' ? 'text-green-600' : 'text-red-600' }}">
                             {{ $entry->type === 'income' ? '+' : '-' }}GHS {{ number_format($entry->amount, 2) }}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            @if(isset($entry->transaction_id))
+                                <a href="{{ route('transactions.show', $entry->transaction_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">Open</a>
+                                @if(!empty($entry->has_notes))
+                                    <span class="block text-xs text-gray-500 mt-0.5">Notes incl. line items</span>
+                                @endif
+                            @else
+                                —
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">No statement entries in this period.</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">No statement entries in this period.</td>
                     </tr>
                     @endforelse
                 </tbody>
