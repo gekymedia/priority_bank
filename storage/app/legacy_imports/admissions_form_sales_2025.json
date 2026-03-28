@@ -1,0 +1,141 @@
+{
+    "meta": {
+        "source": "CUG (payments table, confirmed)",
+        "generated": "2026-03-28T21:50:06+00:00",
+        "bbf_cutoff": "date_paid < 2025-01-01 → single BBF line dated 2025-01-01",
+        "monthly_scope": "2025-01-01 .. 2025-12-31 by date_paid, one line per month-end (months with 0 omitted)",
+        "priority_bank_import": "php artisan transactions:import-legacy --file=\/path\/to\/this.json"
+    },
+    "transactions": [
+        {
+            "date": "2025-01-01",
+            "type": "income",
+            "amount": 73450,
+            "category": "Income [Admissions – balance brought forward 2025]",
+            "description": "CUG form-fee revenue: confirmed payments with date_paid before 2025-01-01 (opening \/ BBF).",
+            "notes": "Aggregated from CUG payments table. Rows: 565. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-01-31",
+            "type": "income",
+            "amount": 24050,
+            "category": "Income [Admissions form sales – January 2025]",
+            "description": "CUG form-fee revenue for January 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 185. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-02-28",
+            "type": "income",
+            "amount": 13260,
+            "category": "Income [Admissions form sales – February 2025]",
+            "description": "CUG form-fee revenue for February 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 102. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-03-31",
+            "type": "income",
+            "amount": 12220,
+            "category": "Income [Admissions form sales – March 2025]",
+            "description": "CUG form-fee revenue for March 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 94. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-04-30",
+            "type": "income",
+            "amount": 12610,
+            "category": "Income [Admissions form sales – April 2025]",
+            "description": "CUG form-fee revenue for April 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 97. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-05-31",
+            "type": "income",
+            "amount": 13790,
+            "category": "Income [Admissions form sales – May 2025]",
+            "description": "CUG form-fee revenue for May 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 103. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-06-30",
+            "type": "income",
+            "amount": 31550,
+            "category": "Income [Admissions form sales – June 2025]",
+            "description": "CUG form-fee revenue for June 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 152. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-07-31",
+            "type": "income",
+            "amount": 30400,
+            "category": "Income [Admissions form sales – July 2025]",
+            "description": "CUG form-fee revenue for July 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 145. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-08-31",
+            "type": "income",
+            "amount": 21900,
+            "category": "Income [Admissions form sales – August 2025]",
+            "description": "CUG form-fee revenue for August 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 105. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-09-30",
+            "type": "income",
+            "amount": 16750,
+            "category": "Income [Admissions form sales – September 2025]",
+            "description": "CUG form-fee revenue for September 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 80. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-10-31",
+            "type": "income",
+            "amount": 7350,
+            "category": "Income [Admissions form sales – October 2025]",
+            "description": "CUG form-fee revenue for October 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 36. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-11-30",
+            "type": "income",
+            "amount": 21350,
+            "category": "Income [Admissions form sales – November 2025]",
+            "description": "CUG form-fee revenue for November 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 102. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        },
+        {
+            "date": "2025-12-31",
+            "type": "income",
+            "amount": 28450,
+            "category": "Income [Admissions form sales – December 2025]",
+            "description": "CUG form-fee revenue for December 2025 (confirmed payments by date_paid).",
+            "notes": "Aggregated from CUG payments table. Payment rows in month: 138. Export: priority-bank:export-form-sales-legacy.",
+            "system_id": "priority_admissions",
+            "user_id": null
+        }
+    ]
+}

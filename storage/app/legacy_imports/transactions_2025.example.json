@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "label": "Legacy 2025 rollups — copy to transactions_2025.json and edit",
+        "system_id_values": "Use systems_registry.system_id strings, e.g. personal_ceo, gekymedia, priority_admissions, priority_agriculture (see SystemsRegistrySeeder)"
+    },
+    "transactions": [
+        {
+            "date": "2025-01-31",
+            "type": "expense",
+            "amount": 9627.0,
+            "category": "CEO Personal [Legacy 2025 – Monthly rollup]",
+            "description": "Bucket summary (Jan 2025): Transport ~1,095; Food ~626; People/support ~4,730; …",
+            "notes": "JANUARY 2025 EXPENDITURE\n1st January\n…",
+            "system_id": "personal_ceo",
+            "user_id": null
+        }
+    ]
+}

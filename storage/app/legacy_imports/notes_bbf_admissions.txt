@@ -1,0 +1,10 @@
+BBF calculation (regenerate amount after DB changes):
+
+1) CUG: applicants with created_at < 2025-01-01, joined to personal_details on app_id.
+2) Count UG vs PG (undergraduate/ug → UG; else → PG).
+3) Implied fees: UG × 130 + PG × 180 (same assumption as payments:backfill-legacy for pre–June 2025).
+
+Snapshot used for default amount in legacy_bbf.php:
+   - UG 559, PG 0 → full implied GHC 72,670 (this BBF line).
+
+Alternatives: use 50% (GHC 36,335) or Nov–Dec 2024 cohort only — edit legacy_bbf.php amount.

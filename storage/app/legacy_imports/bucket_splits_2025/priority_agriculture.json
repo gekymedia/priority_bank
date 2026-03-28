@@ -1,0 +1,120 @@
+{
+    "2025-01": [],
+    "2025-02": [],
+    "2025-03": [
+        {
+            "line": "Data : Ghc9",
+            "amount": 9
+        },
+        {
+            "line": "Sammy Farming Project: GHC500",
+            "amount": 500
+        }
+    ],
+    "2025-04": [
+        {
+            "line": "Weeding the house(2 weeks): GHC50",
+            "amount": 50
+        },
+        {
+            "line": "- Fuel for the (1 week) : GHC100",
+            "amount": 100
+        }
+    ],
+    "2025-05": [
+        {
+            "line": "Farms: GHC 180",
+            "amount": 180
+        },
+        {
+            "line": "Lunch: GHC 23",
+            "amount": 23
+        },
+        {
+            "line": "Farms: GHC 220",
+            "amount": 220
+        },
+        {
+            "line": "Lunch: GHC 25",
+            "amount": 25
+        },
+        {
+            "line": "Delivery Motor: GHC 150",
+            "amount": 150
+        },
+        {
+            "line": "Lunch: GHC 23 (duplicate entry, possible update)",
+            "amount": 23
+        },
+        {
+            "line": "Farms, Laboarer: Ghc120",
+            "amount": 120
+        },
+        {
+            "line": "Farms, Women Maize Planting: Ghc200",
+            "amount": 200
+        },
+        {
+            "line": "Farms: Transport: Ghc50",
+            "amount": 50
+        },
+        {
+            "line": "BreakFast: Ghc15",
+            "amount": 15
+        }
+    ],
+    "2025-06": [
+        {
+            "line": "Lunch: GHC30",
+            "amount": 30
+        },
+        {
+            "line": "Weeding of House: Ghc56",
+            "amount": 56
+        },
+        {
+            "line": "Data: Ghc18",
+            "amount": 18
+        }
+    ],
+    "2025-07": [
+        {
+            "line": "Chicken tigh: Ghc25",
+            "amount": 25
+        },
+        {
+            "line": "Crate of Egg: Ghc50",
+            "amount": 50
+        }
+    ],
+    "2025-08": [
+        {
+            "line": "[Rollup] Stub month bucket total — itemize in this file if you want each line listed",
+            "amount": 11700
+        }
+    ],
+    "2025-09": [
+        {
+            "line": "[Rollup] Stub month bucket total — itemize in this file if you want each line listed",
+            "amount": 13000
+        }
+    ],
+    "2025-10": [
+        {
+            "line": "Chickens Drinking through: Ghc200",
+            "amount": 200
+        },
+        {
+            "line": "Vaccines and Cocidiostat: Ghc80",
+            "amount": 80
+        },
+        {
+            "line": "Inventment\/\/Layer Starter Feed: Ghc383",
+            "amount": 383
+        },
+        {
+            "line": "Supper: Ghc4",
+            "amount": 4
+        }
+    ]
+}

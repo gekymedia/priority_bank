@@ -1,0 +1,3 @@
+Apr 2025 expenditure rollup — total GHC 13,225.00 (excludes income; see separate income transaction).
+
+Includes CUG/admissions-related spend mixed with personal (fuel, food, domain/data, DVLA, driving licence, tithes, funerals, market, delivery bike repairs, Sammy support, etc.). Reconcile categories internally if you later split CEO vs admissions ops.

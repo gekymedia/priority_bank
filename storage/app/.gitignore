@@ -2,3 +2,5 @@
 !private/
 !public/
 !.gitignore
+!legacy_imports/
+!legacy_imports/**

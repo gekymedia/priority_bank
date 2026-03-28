@@ -1,0 +1,102 @@
+{
+    "2025-01": [],
+    "2025-02": [],
+    "2025-03": [],
+    "2025-04": [
+        {
+            "line": "Paying for Flyer: GHC50",
+            "amount": 50
+        },
+        {
+            "line": "Data for AntyAma: Ghc10",
+            "amount": 10
+        },
+        {
+            "line": "Masters form: GHC250",
+            "amount": 250
+        },
+        {
+            "line": "Uncle Joe Gift: Ghc200",
+            "amount": 200
+        }
+    ],
+    "2025-05": [
+        {
+            "line": "Toner: GHC 200",
+            "amount": 200
+        },
+        {
+            "line": "A4 Sheet: GHC 70",
+            "amount": 70
+        },
+        {
+            "line": "CEMS Faculty Dinner Support: GHC100",
+            "amount": 100
+        },
+        {
+            "line": "Leticia: Ghc20",
+            "amount": 20
+        },
+        {
+            "line": "A4 BOX: Ghc375",
+            "amount": 375
+        },
+        {
+            "line": "WiFi Reciever: Ghc55",
+            "amount": 55
+        },
+        {
+            "line": "Toner: Ghc180",
+            "amount": 180
+        },
+        {
+            "line": "Stipple Pins: Ghc20",
+            "amount": 20
+        }
+    ],
+    "2025-06": [],
+    "2025-07": [
+        {
+            "line": "Buying of CUG domain: Ghc170",
+            "amount": 170
+        },
+        {
+            "line": "A4 RIM for Printing work: Ghc350",
+            "amount": 350
+        },
+        {
+            "line": "Toner: Ghc190",
+            "amount": 190
+        },
+        {
+            "line": "Tip for Pounds(ADMISSIONS): Ghc70",
+            "amount": 70
+        }
+    ],
+    "2025-08": [
+        {
+            "line": "[Rollup] Stub month bucket total — itemize in this file if you want each line listed",
+            "amount": 800
+        }
+    ],
+    "2025-09": [
+        {
+            "line": "[Rollup] Stub month bucket total — itemize in this file if you want each line listed",
+            "amount": 15000
+        }
+    ],
+    "2025-10": [
+        {
+            "line": "Biz\/\/ Flyers: Ghc300",
+            "amount": 300
+        },
+        {
+            "line": "Aponkye Cup CUG alumni: Ghc20",
+            "amount": 20
+        },
+        {
+            "line": "Loan\/\/ Gideon : Ghc50",
+            "amount": 50
+        }
+    ]
+}
