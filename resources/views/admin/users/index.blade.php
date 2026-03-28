@@ -62,12 +62,10 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12" scope="col"></th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Linked to</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Id</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -75,7 +73,20 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($users as $user)
+                    @php
+                        $savingsSide = (float) ($user->successful_savings_sum ?? 0) + (float) ($user->income_transactions_sum ?? 0);
+                        $loanSide = (float) ($user->borrowed_loans_remaining_sum ?? 0) + (float) ($user->expense_transactions_sum ?? 0);
+                        $netBalance = $savingsSide - $loanSide;
+                    @endphp
                     <tr class="{{ $user->ownedSystems->isEmpty() ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50' }}">
+                        <td class="px-3 py-4 whitespace-nowrap align-middle">
+                            <button type="button"
+                                    class="user-row-expand inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    aria-expanded="false"
+                                    aria-label="Show email, linked systems, and role">
+                                <i class="fas fa-chevron-right text-sm transition-transform user-row-expand-icon" aria-hidden="true"></i>
+                            </button>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 @if($user->profile_photo_path)
@@ -91,28 +102,11 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $user->email }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            @if($user->ownedSystems->isNotEmpty())
-                                <div class="text-sm text-gray-900">
-                                    @foreach($user->ownedSystems as $sys)
-                                        <span class="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-800 mr-1 mb-1">{{ $sys->name ?? $sys->system_id }}</span>
-                                    @endforeach
-                                </div>
-                            @else
-                                <span class="text-sm text-gray-400">—</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $user->phone ?? 'N/A' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 font-mono">{{ $user->account_id ?? '—' }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $user->role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' }}">
-                                {{ ucfirst($user->role) }}
+                            <span class="text-sm font-semibold tabular-nums {{ $netBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}" title="Net balance (savings and income minus loans and expenses)">
+                                GHS {{ number_format($netBalance, 2) }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -181,9 +175,37 @@
                             </div>
                         </td>
                     </tr>
+                    <tr class="user-extra-row hidden bg-gray-50/80">
+                        <td colspan="7" class="px-6 py-4 border-t border-gray-100">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Email</div>
+                                    <div class="text-gray-900 break-all">{{ $user->email }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Linked to</div>
+                                    @if($user->ownedSystems->isNotEmpty())
+                                        <div class="text-gray-900">
+                                            @foreach($user->ownedSystems as $sys)
+                                                <span class="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-800 mr-1 mb-1">{{ $sys->name ?? $sys->system_id }}</span>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400">—</span>
+                                    @endif
+                                </div>
+                                <div>
+                                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Role</div>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $user->role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' }}">
+                                        {{ ucfirst($user->role) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
                             No users found.
                         </td>
                     </tr>
@@ -196,4 +218,24 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+$(function () {
+    $(document).on('click', '.user-row-expand', function () {
+        var $btn = $(this);
+        var $extra = $btn.closest('tr').next('.user-extra-row');
+        var expanded = $btn.attr('aria-expanded') === 'true';
+        $extra.toggleClass('hidden', expanded);
+        $btn.attr('aria-expanded', expanded ? 'false' : 'true');
+        var $icon = $btn.find('.user-row-expand-icon');
+        if (expanded) {
+            $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+        } else {
+            $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+        }
+    });
+});
+</script>
+@endpush
 @endsection

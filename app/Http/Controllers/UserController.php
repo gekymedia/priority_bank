@@ -40,7 +40,14 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
-        $users = $query->with('ownedSystems')->latest()->paginate(50);
+        $users = $query
+            ->with('ownedSystems')
+            ->withSum(['savings as successful_savings_sum' => fn ($q) => $q->where('status', 'successful')], 'amount')
+            ->withSum(['transactions as income_transactions_sum' => fn ($q) => $q->where('type', 'income')], 'amount')
+            ->withSum(['loans as borrowed_loans_remaining_sum' => fn ($q) => $q->where('is_group_loan', true)->where('status', 'borrowed')], 'remaining_balance')
+            ->withSum(['transactions as expense_transactions_sum' => fn ($q) => $q->where('type', 'expense')], 'amount')
+            ->latest()
+            ->paginate(50);
 
         return view('admin.users.index', compact('users'));
     }
