@@ -1,0 +1,240 @@
+MAY 2025 EXPENDITURE 
+1st May
+Expenditure 
+Fuel: GHC50
+Data: Ghc10
+
+Income 
+UndergraduateForms(5): Ghc875
+Access Fees Payment: Ghc30
+
+
+2nd May
+Expenditure 
+ChatGPT Subscription: GHC290
+Data: Ghc10
+Transportation to town to get fuel: Ghc26
+
+Income 
+UndergraduateForms(5): Ghc875
+Discounted Form: Ghc150
+Access Fees Payment: Ghc30
+Postgraduate forms(2): 
+
+3rd May
+Expenditure 
+Fuel: GHC200
+Data: Ghc10
+Waakye: Ghc32
+Deodorant : Ghc45
+Body Lotion: Ghc45
+Minor Moto Repairs: Ghc20
+Laundry for two weeks :ghc100
+Supper : 32
+
+Income 
+UndergraduateForms(3): Ghc525
+Discounted Form: Ghc150
+Access Fees Payment: Ghc30
+
+Advertisement Data
+// Whatsapp Broadcast : Yes
+// Status Update:  Yes
+// Facebook Post : No
+// Facebook Groups: 0
+
+4th May
+Expenditure 
+Sunday, 4th May 2025
+Gizzard: GHC 40
+Rice: GHC 800
+Fuel: GHC 200
+Oil: GHC 240
+Yam: GHC 70
+Egg: GHC 120
+
+Income 
+UndergraduateForms(3): Ghc
+Discounted Form: 
+Access Fees Payment: Ghc30
+
+7th May 
+Expenditure 
+Bank Teller Tip: Ghc150
+Toner: GHC 200
+A4 Sheet: GHC 70
+
+8th May
+Expenses
+CEMS Faculty Dinner Support: GHC100
+Leticia: Ghc20
+
+Income
+Ofa Nana Yaw: Ghc100
+Forms(2): Ghc350
+
+
+Thursday, 8th May 2025
+Pineapple: GHC 30
+Lithaix Cut: GHC 30
+
+Friday, 9th May 2025
+Farms: GHC 180
+Lunch: GHC 23
+
+Saturday, 10th May 2025
+Fuel: GHC 100
+Thrush: GHC 30
+Vinco Tabs: GHC 100
+
+Sunday, 11th May 2025
+Yam: GHC 100
+Vinco Tabs: (amount not recorded)
+
+Monday, 12th May 2025
+Lunch: GHC 23
+Phone Batteries: GHC 12.5
+Charging Chord: GHC 45
+
+Tuesday, 13th May 2025
+Farms: GHC 220
+Lunch: GHC 25
+Phone Repairs: GHC 40
+Phone Moto Repairs: GHC 5
+Moto Transport: GHC 60 + GHC 80 = GHC 140
+Delivery Motor: GHC 150
+Lunch: GHC 23 (duplicate entry, possible update)
+Phone Battery (2): GHC 25
+
+Wednesday, 14th May 2025
+(No entries)
+
+Thursday, 15th May 2025
+Lunch (amount not recorded)
+
+Friday, 16th May 2025
+Lunch: GHC 25
+
+Saturday, 17th May
+Lunch : Ghc25
+
+
+Sunday, 18th
+Farms, Laboarer: Ghc120
+Farms, Women Maize Planting: Ghc200
+Farms: Transport: Ghc50
+BreakFast: Ghc15
+Chipset Dinner Ticket: Ghc90
+Data: Ghc9
+
+19th May
+Car Licence: Ghc100
+Prepaid: Ghc100 ≈32units
+Data: Summy: Ghc5
+Lunch: Ghc5
+Moto Washing : Ghc25
+Phone Final Repairs: GHC170
+
+20th May
+Herbert : Ghc50
+Constance: Ghc50
+Business Registration: Ghc120
+Lunch: GHC23
+Mosquito Repellent: Ghc10
+Water : Ghc7
+
+21st May
+A4 BOX: Ghc375
+WiFi Reciever: Ghc55
+Sammy Advance: Ghc2500
+Herbert : Ghc20 
+Data : Ghc10
+Supper: Ghc45
+
+22nd May
+Lunch: GHC25
+Vegetables: Ghc35
+Soap: Ghc16
+Bread: Ghc60
+Adwoa : Ghc100
+Eear Phone : Ghc20
+Tyep c cable: Ghc15
+Apple: Ghc40
+Tnt: Ghc10
+// Sam Salary: Ghc2500
+
+23rd May
+Income: GHC450
+Adwoas Kids,: Ghc24
+Esther Friends : GHC200
+Adams: Ghc20
+Christophe: Ghc20
+Koo Emma: GHC20
+Phone Screen Protector: Ghc 20
+Dada: Ghc 50
+Transportation: Ghc50
+Data: ghc30
+
+24th May
+Post office Box renewal: Ghc350
+Supper : Ghc40
+Airtime: Ghc12
+
+25th
+Lunch: Ghc26
+Gas: Ghc413
+Fuel: Ghc50
+Sammy: Ghc400
+Airtime: Ghc5
+
+26th
+Food : Ghc25
+Data: Ghc10
+
+
+27th
+Data: Ghc10
+Food: Ghc25
+Supper: Ghc16
+Solo Accommodation: GHC1300
+Adwoa Papabi: Ghc50
+
+28th
+Toner: Ghc180
+Stipple Pins: Ghc20
+Cable : Ghc30
+Lunch: Ghc30
+Sammy: GHC50
+Computer Housing: Ghc300
+Data: Ghc9
+
+29th
+Delivery to Sammy: Ghc40
+Anty Ama New Dormaa: Ghc200
+Daniel : Ghc10
+Supper: Ghc40
+Data: Ghc9
+//Sammy Data: Ghc10
+
+30th
+Anty Ama: Ghc200
+//Sammy Data: Gh10
+Prepaid(150 Units): GHC276
+Solo House Payment: Ghc700
+
+31th
+Gideon Salaray: GHC500
+Food: GHC25
+Adwoa Papabi: Ghc170
+Sammy Extra Topup: Ghc300
+API for Chat GPT Project: Ghc60
+
+Tithe: Ghc1000
+Missions Offering: GHC100
+
+Key Income Sources
+// Ofa Nana Yaw: GHC450
+// STU: GHC980 
+// Geky Media: GHC300
+// MR. PATRICK: GHC600
+// CUG FORMS: GHC20000

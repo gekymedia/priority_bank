@@ -1,4 +1,3 @@
-# Diary text files may stay local; generated JSON is versioned for production import.
+# Large one-off dumps stay local; month diaries are versioned.
 !transactions_2025.example.json
 legacy_source_full.txt
-2025-0*.txt

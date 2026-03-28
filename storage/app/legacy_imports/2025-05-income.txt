@@ -1,0 +1,9 @@
+May 2025 — admissions / other income
+
+The JSON import uses your key figure CUG FORMS: GHC 20,000 (from end of May paste). Daily form-income lines in May were partly incomplete or ambiguous in the source (e.g. 4 May income incomplete).
+
+Reconcile this row against:
+- MoMo / bank received for Priority Admissions in May
+- Sum of daily “Forms” lines if you complete them in a spreadsheet
+
+Optional: replace the income amount in transactions_2025.json after you compute the true May total.
