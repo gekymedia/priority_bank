@@ -133,6 +133,7 @@ class UserController extends Controller
         $incomeByUser = Transaction::query()
             ->whereIn('user_id', $ids)
             ->where('type', 'income')
+            ->notSavingsDepositMirror()
             ->groupBy('user_id')
             ->selectRaw('user_id, COALESCE(SUM(amount), 0) as total')
             ->pluck('total', 'user_id');

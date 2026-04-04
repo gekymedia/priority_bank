@@ -63,6 +63,15 @@ class Transaction extends Model
     }
 
     /**
+     * Income/expense rows created from an approved Saving deposit (saving_id set) are ledger mirrors;
+     * the amount is already counted on the Saving record — exclude from sums that add savings + transactions.
+     */
+    public function scopeNotSavingsDepositMirror($query)
+    {
+        return $query->whereNull('saving_id');
+    }
+
+    /**
      * Scope a query to only include income transactions.
      */
     public function scopeIncome($query)

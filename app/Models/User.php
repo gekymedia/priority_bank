@@ -141,12 +141,17 @@ class User extends Authenticatable
 
     /**
      * Get the user's available savings balance.
-     * Includes: successful Saving deposits + income Transactions (e.g. admin-tagged Priority Bank credits).
+     * Includes: successful Saving deposits + income Transactions that are not mirrors of those deposits
+     * (transactions with saving_id are already represented in the Savings total).
      */
     public function getSavingsBalanceAttribute()
     {
         $fromSavings = $this->savings()->where('status', 'successful')->sum('amount');
-        $fromTransactions = $this->transactions()->where('type', 'income')->sum('amount');
+        $fromTransactions = $this->transactions()
+            ->where('type', 'income')
+            ->notSavingsDepositMirror()
+            ->sum('amount');
+
         return $fromSavings + $fromTransactions;
     }
 
