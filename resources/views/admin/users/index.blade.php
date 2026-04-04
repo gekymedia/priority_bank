@@ -74,9 +74,8 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($users as $user)
                     @php
-                        $savingsSide = (float) ($user->successful_savings_sum ?? 0) + (float) ($user->income_transactions_sum ?? 0);
-                        $loanSide = (float) ($user->borrowed_loans_remaining_sum ?? 0) + (float) ($user->expense_transactions_sum ?? 0);
-                        $netBalance = $savingsSide - $loanSide;
+                        /** @var float $netBalance Same formula as User::net_balance (set on index via batch aggregates). */
+                        $netBalance = (float) ($user->aggregated_net_balance ?? 0);
                     @endphp
                     <tr class="{{ $user->ownedSystems->isEmpty() ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50' }}">
                         <td class="px-3 py-4 whitespace-nowrap align-middle">
@@ -105,7 +104,7 @@
                             <div class="text-sm text-gray-900">{{ $user->phone ?? 'N/A' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm font-semibold tabular-nums {{ $netBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}" title="Net balance (savings and income minus loans and expenses)">
+                            <span class="text-sm font-semibold tabular-nums {{ $netBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}" title="Net balance — matches user profile (successful savings + income transactions − borrowed group loans − expense transactions)">
                                 GHS {{ number_format($netBalance, 2) }}
                             </span>
                         </td>

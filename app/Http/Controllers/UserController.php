@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Loan;
+use App\Models\Saving;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Services\UserNotificationService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -42,12 +46,10 @@ class UserController extends Controller
 
         $users = $query
             ->with('ownedSystems')
-            ->withSum(['savings as successful_savings_sum' => fn ($q) => $q->where('status', 'successful')], 'amount')
-            ->withSum(['transactions as income_transactions_sum' => fn ($q) => $q->where('type', 'income')], 'amount')
-            ->withSum(['loans as borrowed_loans_remaining_sum' => fn ($q) => $q->where('is_group_loan', true)->where('status', 'borrowed')], 'remaining_balance')
-            ->withSum(['transactions as expense_transactions_sum' => fn ($q) => $q->where('type', 'expense')], 'amount')
             ->latest()
             ->paginate(50);
+
+        $this->hydrateUserNetBalancesForPage($users);
 
         return view('admin.users.index', compact('users'));
     }
@@ -109,8 +111,57 @@ class UserController extends Controller
     }
 
     /**
-     * View statement for a user. Table lists transactions only (savings deposits omitted to avoid double count);
-     * header balances use full ledger like User Management (savings + transactions − loans − expenses).
+     * Batch-compute net balance for each user on the current index page so the Balance column matches
+     * User::net_balance / profile (same rules as savings_balance minus loan_balance accessors).
+     */
+    protected function hydrateUserNetBalancesForPage(LengthAwarePaginator $paginator): void
+    {
+        $collection = $paginator->getCollection();
+        if ($collection->isEmpty()) {
+            return;
+        }
+
+        $ids = $collection->pluck('id')->all();
+
+        $savingsByUser = Saving::query()
+            ->whereIn('user_id', $ids)
+            ->where('status', 'successful')
+            ->groupBy('user_id')
+            ->selectRaw('user_id, COALESCE(SUM(amount), 0) as total')
+            ->pluck('total', 'user_id');
+
+        $incomeByUser = Transaction::query()
+            ->whereIn('user_id', $ids)
+            ->where('type', 'income')
+            ->groupBy('user_id')
+            ->selectRaw('user_id, COALESCE(SUM(amount), 0) as total')
+            ->pluck('total', 'user_id');
+
+        $loanRemainingByUser = Loan::query()
+            ->whereIn('user_id', $ids)
+            ->where('is_group_loan', true)
+            ->where('status', 'borrowed')
+            ->groupBy('user_id')
+            ->selectRaw('user_id, COALESCE(SUM(remaining_balance), 0) as total')
+            ->pluck('total', 'user_id');
+
+        $expenseByUser = Transaction::query()
+            ->whereIn('user_id', $ids)
+            ->where('type', 'expense')
+            ->groupBy('user_id')
+            ->selectRaw('user_id, COALESCE(SUM(amount), 0) as total')
+            ->pluck('total', 'user_id');
+
+        foreach ($collection as $user) {
+            $id = $user->id;
+            $savingsSide = (float) ($savingsByUser[$id] ?? 0) + (float) ($incomeByUser[$id] ?? 0);
+            $loanSide = (float) ($loanRemainingByUser[$id] ?? 0) + (float) ($expenseByUser[$id] ?? 0);
+            $user->setAttribute('aggregated_net_balance', round($savingsSide - $loanSide, 2));
+        }
+    }
+
+    /**
+     * View statement for a user (transactions table; header uses full account balances).
      */
     public function statement(Request $request, User $user)
     {

@@ -38,7 +38,7 @@
             <tr><td class="label">Email</td><td>{{ $user->email }}</td></tr>
             <tr><td class="label">Phone</td><td>{{ $user->phone ?? 'N/A' }}</td></tr>
             <tr><td class="label">Statement date</td><td>{{ now()->format('F d, Y') }}</td></tr>
-            <tr><td class="label">Account net (full ledger)</td><td>GHS {{ number_format($user->net_balance, 2) }} — savings + income transactions minus loans and expenses (matches User Management).</td></tr>
+            <tr><td class="label">Net balance</td><td>GHS {{ number_format($user->net_balance, 2) }}</td></tr>
         </table>
     </div>
 
@@ -78,11 +78,10 @@
     </table>
 
     <div class="totals">
-        <p style="font-size:9px;color:#666;margin:0 0 8px 0;max-width:480px;">Totals below are <strong>transactions in this table only</strong> (excludes savings deposits; respects period above). They may differ from Account net.</p>
         <table>
-            <tr><td class="label">Credits (transactions)</td><td class="amount credit">GHS {{ number_format($totalCredits, 2) }}</td></tr>
-            <tr><td class="label">Debits (transactions)</td><td class="amount debit">GHS {{ number_format($totalDebits, 2) }}</td></tr>
-            <tr><td class="label">Net (table only)</td><td class="amount">{{ $netBalance >= 0 ? '' : '-' }}GHS {{ number_format(abs($netBalance), 2) }}</td></tr>
+            <tr><td class="label">Total credits</td><td class="amount credit">GHS {{ number_format($totalCredits, 2) }}</td></tr>
+            <tr><td class="label">Total debits</td><td class="amount debit">GHS {{ number_format($totalDebits, 2) }}</td></tr>
+            <tr><td class="label">Net balance</td><td class="amount">{{ $netBalance >= 0 ? '' : '-' }}GHS {{ number_format(abs($netBalance), 2) }}</td></tr>
         </table>
     </div>
 
