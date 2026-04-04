@@ -109,7 +109,8 @@ class UserController extends Controller
     }
 
     /**
-     * View statement for a user (transactions + savings, date-ordered).
+     * View statement for a user. Table lists transactions only (savings deposits omitted to avoid double count);
+     * header balances use full ledger like User Management (savings + transactions − loans − expenses).
      */
     public function statement(Request $request, User $user)
     {
