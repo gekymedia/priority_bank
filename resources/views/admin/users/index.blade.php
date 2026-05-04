@@ -63,7 +63,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                        <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
@@ -104,16 +104,23 @@
                                     <div class="text-xs mt-0.5">
                                         <span class="px-1.5 py-0.5 rounded font-medium {{ $user->role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' }}">{{ ucfirst($user->role) }}</span>
                                     </div>
+                                    {{-- Balance stacked under identity on small screens (no horizontal scroll) --}}
+                                    <div class="md:hidden mt-3 pt-3 border-t border-gray-200">
+                                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Balance</div>
+                                        <span class="text-base font-semibold tabular-nums {{ $netBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}" title="Net balance — matches user profile (successful savings + income transactions − borrowed group loans − expense transactions)">
+                                            GHS {{ number_format($netBalance, 2) }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap align-top">
+                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap align-top">
                             <span class="text-sm font-semibold tabular-nums {{ $netBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}" title="Net balance — matches user profile (successful savings + income transactions − borrowed group loans − expense transactions)">
                                 GHS {{ number_format($netBalance, 2) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap align-top">
-                            <div class="text-sm text-gray-900">{{ $user->phone ?? 'N/A' }}</div>
+                        <td class="px-6 py-4 align-top whitespace-normal md:whitespace-nowrap">
+                            <div class="text-sm text-gray-900 break-words md:break-normal">{{ $user->phone ?? 'N/A' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap align-top">
                             @if($user->status === 'pending')
