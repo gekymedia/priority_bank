@@ -62,10 +62,9 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12" scope="col"></th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -78,37 +77,45 @@
                         $netBalance = (float) ($user->aggregated_net_balance ?? 0);
                     @endphp
                     <tr class="{{ $user->ownedSystems->isEmpty() ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50' }}">
-                        <td class="px-3 py-4 whitespace-nowrap align-middle">
-                            <button type="button"
-                                    class="user-row-expand inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    aria-expanded="false"
-                                    aria-label="Show email, linked systems, and role">
-                                <i class="fas fa-chevron-right text-sm transition-transform user-row-expand-icon" aria-hidden="true"></i>
-                            </button>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
+                        <td class="px-6 py-4 align-top">
+                            <div class="flex items-start">
                                 @if($user->profile_photo_path)
-                                    <img class="h-10 w-10 rounded-full object-cover mr-3" 
+                                    <img class="h-10 w-10 rounded-full object-cover mr-3 shrink-0 mt-0.5" 
                                          src="{{ route('profile.photo', ['path' => $user->profile_photo_path]) }}" 
                                          alt="{{ $user->name }}">
                                 @else
-                                    <div class="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] rounded-full overflow-hidden flex items-center justify-center text-white text-sm font-medium mr-3 shrink-0 bg-indigo-500">
+                                    <div class="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] rounded-full overflow-hidden flex items-center justify-center text-white text-sm font-medium mr-3 shrink-0 bg-indigo-500 mt-0.5">
                                         {{ strtoupper(substr($user->name, 0, 1)) }}
                                     </div>
                                 @endif
-                                <a href="{{ route('admin.users.statement', $user) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline">{{ $user->name }}</a>
+                                <div class="min-w-0">
+                                    <a href="{{ route('admin.users.statement', $user) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline block">{{ $user->name }}</a>
+                                    <div class="text-xs text-gray-500 mt-1 break-all">{{ $user->email }}</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">
+                                        <span class="font-medium text-gray-600">Linked:</span>
+                                        @if($user->ownedSystems->isNotEmpty())
+                                            @foreach($user->ownedSystems as $sys)
+                                                <span class="inline-block px-1.5 py-0.5 rounded bg-gray-100 text-gray-800 mr-1 mt-0.5">{{ $sys->name ?? $sys->system_id }}</span>
+                                            @endforeach
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs mt-0.5">
+                                        <span class="px-1.5 py-0.5 rounded font-medium {{ $user->role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' }}">{{ ucfirst($user->role) }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $user->phone ?? 'N/A' }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap align-top">
                             <span class="text-sm font-semibold tabular-nums {{ $netBalance >= 0 ? 'text-emerald-700' : 'text-red-700' }}" title="Net balance — matches user profile (successful savings + income transactions − borrowed group loans − expense transactions)">
                                 GHS {{ number_format($netBalance, 2) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap align-top">
+                            <div class="text-sm text-gray-900">{{ $user->phone ?? 'N/A' }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap align-top">
                             @if($user->status === 'pending')
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                     Pending
@@ -127,10 +134,10 @@
                                 </span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top">
                             {{ $user->created_at->format('M d, Y') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium align-top">
                             <div class="flex justify-end space-x-2">
                                 @if($user->status === 'pending')
                                     <form action="{{ route('admin.users.approve', $user) }}" method="POST" class="inline">
@@ -174,37 +181,9 @@
                             </div>
                         </td>
                     </tr>
-                    <tr class="user-extra-row hidden bg-gray-50/80">
-                        <td colspan="7" class="px-6 py-4 border-t border-gray-100">
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Email</div>
-                                    <div class="text-gray-900 break-all">{{ $user->email }}</div>
-                                </div>
-                                <div>
-                                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Linked to</div>
-                                    @if($user->ownedSystems->isNotEmpty())
-                                        <div class="text-gray-900">
-                                            @foreach($user->ownedSystems as $sys)
-                                                <span class="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-800 mr-1 mb-1">{{ $sys->name ?? $sys->system_id }}</span>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <span class="text-gray-400">—</span>
-                                    @endif
-                                </div>
-                                <div>
-                                    <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Role</div>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $user->role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' }}">
-                                        {{ ucfirst($user->role) }}
-                                    </span>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                             No users found.
                         </td>
                     </tr>
@@ -217,24 +196,4 @@
         </div>
     </div>
 </div>
-
-@push('scripts')
-<script>
-$(function () {
-    $(document).on('click', '.user-row-expand', function () {
-        var $btn = $(this);
-        var $extra = $btn.closest('tr').next('.user-extra-row');
-        var expanded = $btn.attr('aria-expanded') === 'true';
-        $extra.toggleClass('hidden', expanded);
-        $btn.attr('aria-expanded', expanded ? 'false' : 'true');
-        var $icon = $btn.find('.user-row-expand-icon');
-        if (expanded) {
-            $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-        } else {
-            $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-        }
-    });
-});
-</script>
-@endpush
 @endsection
