@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\UserNotificationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -21,10 +22,29 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+        $query = $this->filteredUsersQuery($request);
+
+        $summary = $this->buildUsersBalanceSummary(clone $query);
+
+        $users = $query
+            ->with('ownedSystems')
+            ->latest()
+            ->paginate(50)
+            ->withQueryString();
+
+        $this->hydrateUserNetBalancesForPage($users);
+
+        return view('admin.users.index', compact('users', 'summary'));
+    }
+
+    /**
+     * Apply search / role / status filters to the users listing query.
+     */
+    protected function filteredUsersQuery(Request $request): Builder
+    {
         $query = User::query();
 
-        // Search functionality
-        if ($request->has('search') && $request->search) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -34,24 +54,74 @@ class UserController extends Controller
             });
         }
 
-        // Filter by role
-        if ($request->has('role') && $request->role) {
+        if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
 
-        // Filter by status
-        if ($request->has('status') && $request->status) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $users = $query
-            ->with('ownedSystems')
-            ->latest()
-            ->paginate(50);
+        return $query;
+    }
 
-        $this->hydrateUserNetBalancesForPage($users);
+    /**
+     * Aggregate balance + membership counts for the current filtered user set.
+     * Uses the same net-balance formula as User::net_balance / hydrateUserNetBalancesForPage.
+     *
+     * @return array{
+     *     total_users: int,
+     *     pending_users: int,
+     *     approved_users: int,
+     *     rejected_users: int,
+     *     total_savings: float,
+     *     total_loans: float,
+     *     total_net: float
+     * }
+     */
+    protected function buildUsersBalanceSummary(Builder $baseQuery): array
+    {
+        $idsSub = (clone $baseQuery)->select('users.id');
 
-        return view('admin.users.index', compact('users'));
+        $totalUsers = (clone $baseQuery)->count();
+        $pendingUsers = (clone $baseQuery)->where('status', 'pending')->count();
+        $approvedUsers = (clone $baseQuery)->where('status', 'approved')->count();
+        $rejectedUsers = (clone $baseQuery)->where('status', 'rejected')->count();
+
+        $savingsTotal = (float) Saving::query()
+            ->whereIn('user_id', $idsSub)
+            ->where('status', 'successful')
+            ->sum('amount');
+
+        $incomeTotal = (float) Transaction::query()
+            ->whereIn('user_id', $idsSub)
+            ->where('type', 'income')
+            ->notSavingsDepositMirror()
+            ->sum('amount');
+
+        $loanTotal = (float) Loan::query()
+            ->whereIn('user_id', $idsSub)
+            ->where('is_group_loan', true)
+            ->where('status', 'borrowed')
+            ->sum('remaining_balance');
+
+        $expenseTotal = (float) Transaction::query()
+            ->whereIn('user_id', $idsSub)
+            ->where('type', 'expense')
+            ->sum('amount');
+
+        $totalSavings = round($savingsTotal + $incomeTotal, 2);
+        $totalLoans = round($loanTotal + $expenseTotal, 2);
+
+        return [
+            'total_users' => $totalUsers,
+            'pending_users' => $pendingUsers,
+            'approved_users' => $approvedUsers,
+            'rejected_users' => $rejectedUsers,
+            'total_savings' => $totalSavings,
+            'total_loans' => $totalLoans,
+            'total_net' => round($totalSavings - $totalLoans, 2),
+        ];
     }
 
     /**
@@ -155,8 +225,10 @@ class UserController extends Controller
 
         foreach ($collection as $user) {
             $id = $user->id;
-            $savingsSide = (float) ($savingsByUser[$id] ?? 0) + (float) ($incomeByUser[$id] ?? 0);
-            $loanSide = (float) ($loanRemainingByUser[$id] ?? 0) + (float) ($expenseByUser[$id] ?? 0);
+            $savingsSide = round((float) ($savingsByUser[$id] ?? 0) + (float) ($incomeByUser[$id] ?? 0), 2);
+            $loanSide = round((float) ($loanRemainingByUser[$id] ?? 0) + (float) ($expenseByUser[$id] ?? 0), 2);
+            $user->setAttribute('aggregated_savings_balance', $savingsSide);
+            $user->setAttribute('aggregated_loan_balance', $loanSide);
             $user->setAttribute('aggregated_net_balance', round($savingsSide - $loanSide, 2));
         }
     }
